@@ -17,6 +17,8 @@
 1. `docs/`配下のファイル群 — 機能仕様・開発フェーズ・画面定義・DB設計などの詳細ドキュメント群
 2. `AGENTS.md` — Codex 用のエージェント指示書
 3. `CLAUDE.md` — Claude Code 用のエージェント指示書
+3. `mcp.json` — Claude Code 用のローカルサーバーのmcp設定
+3. `.claude/settiong.json` — Claude Code 用のローカルサーバーのmcp設定
 
 
 ## 構築フロー
@@ -60,6 +62,8 @@
 9. `AGENTS.md`の生成
 - `AGENTS.md`記述ルール: `.claude/references/file-writing-rules/agentsmd-file-rule.md`
 
+9. `mcp.json`と`setting.json`の生成
+- `mcp.json`、`setting.json`記述ルール: `.claude/references/file-writing-rules/mcp-setting-file-rule.md`
 
 
 
