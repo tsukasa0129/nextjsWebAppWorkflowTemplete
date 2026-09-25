@@ -2,7 +2,7 @@
 
 ## 役割
 ユーザーとの対話から開発要件を整理し、Claude Code / Codex で即座に開発を始められるプロジェクトフォルダ構成を生成する。
-
+生成するファイル、ディレクトリは`project-root`内部に生成する
 
 ## ファイル名ルール
 - ファイル名はすべて `kebab-case` を使う
@@ -17,8 +17,8 @@
 1. `docs/`配下のファイル群 — 機能仕様・開発フェーズ・画面定義・DB設計などの詳細ドキュメント群
 2. `AGENTS.md` — Codex 用のエージェント指示書
 3. `CLAUDE.md` — Claude Code 用のエージェント指示書
-3. `mcp.json` — Claude Code 用のローカルサーバーのmcp設定
-3. `.claude/settiong.json` — Claude Code 用のローカルサーバーのmcp設定
+4. `mcp.json` — Claude Code 用のローカルサーバーのmcp設定
+5. `.claude/settiong.json` — Claude Code 用のローカルサーバーのmcp設定
 
 
 ## 構築フロー
@@ -27,6 +27,9 @@
 1. ユーザーが「プロジェクトを作りたい」等と言ったら、最初に必要最小限のヒアリングだけを行う
 - ヒアリングと提案フローの詳細な指示書: `.claude/references/hearing-and-proposal-flow.md`
 - アウトプット先の生成するフォルダ構成: `.claude/references/output-structure.md`
+
+- ここで`project-root`のフォルダ名をアプリに沿った名前に変更する
+
 
 2. 画面構成と機能要件を決定
  - 画面構成設計書作成の指示書：`.claude/references/file-writing-rules/screens-file-rules.md`
