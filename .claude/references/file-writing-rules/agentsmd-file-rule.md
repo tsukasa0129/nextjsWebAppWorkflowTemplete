@@ -96,7 +96,7 @@ AIエージェントのルートとなる指示書
 
 ## デザイン規約
 - Tailwind CSSの使用
-- toC向けのweb2appやネイティブアプリでのデザインは`Appllama`skillを使用
+- toC向けのweb2appやネイティブアプリでのuiデザインは`Appllama`skillを使用
 - 自社用の効率用のサービスor toB向けのサービスには
 
 
