@@ -28,8 +28,6 @@
 - ヒアリングと提案フローの詳細な指示書: `.claude/references/hearing-and-proposal-flow.md`
 - アウトプット先の生成するフォルダ構成: `.claude/references/output-structure.md`
 
-- ここで`project-root`のフォルダ名をアプリに沿った名前に変更する
-
 
 2. 画面構成と機能要件を決定
  - 画面構成設計書作成の指示書：`.claude/references/file-writing-rules/screens-file-rules.md`
@@ -68,7 +66,8 @@
 9. `mcp.json`と`setting.json`の生成
 - `mcp.json`、`setting.json`記述ルール: `.claude/references/file-writing-rules/mcp-setting-file-rule.md`
 
-
+10. リポジトリの作成とプッシュ
+- ここで`project-root`のフォルダ名をアプリに沿った名前に変更して、新たなgithubリポジトリを作成してコミットプッシュする
 
 
 
