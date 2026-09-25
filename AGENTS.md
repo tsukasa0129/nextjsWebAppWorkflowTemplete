@@ -66,7 +66,7 @@
 - `mcp.json`、`setting.json`記述ルール: `.claude/references/file-writing-rules/mcp-setting-file-rule.md`
 
 10. リポジトリの作成とプッシュ
-- ここで`project-root`のフォルダ名をアプリに沿った名前に変更して、新たなgithubリポジトリを作成してコミットプッシュする
+- アプリに沿った名前で、新たなgithubリポジトリを作成してコミット、プッシュする
 
 
 
