@@ -98,7 +98,7 @@ Stripe Custom Checkout（ui_mode: "elements"）を使用。
 ### ① ページを開くと自動で POST /api/stripe/checkout
 Checkout Session を作成（mode: payment, ¥199, customer_email,setup_future_usage: off_session, metadata.session_id）
 client_secret を返す → Provider に渡して決済フォームを表示
-すでに premium なら 409 → premium ページへリダイレクト
+すでに premium なら 409 → result ページへリダイレクト
 
 [サーバー] POST /api/stripe/checkout
 stripe.checkout.sessions.create({ ui_mode: "elements", mode: "payment", ... })
@@ -117,23 +117,24 @@ stripe.checkout.sessions.create({ ui_mode: "elements", mode: "payment", ... })
 Express: checkout.confirm({ expressCheckoutConfirmEvent })
 
 ### ③ 成功すると Stripe が return_url へリダイレクト
-    /premium?checkout_session_id=cs_xxx(&utm…)
-[premium ページ（サーバー側、page.tsx）]
+/result?checkout_session_id=cs_xxx(&utm…)
+[result ページ（サーバー側、page.tsx）]
 
 
 ### ④ verifyAndProcessCheckout()（lib/subscription-helpers.ts:309）
-    - Stripe API から Checkout Session を取得し、payment_status === "paid" を確認
-    - 顧客とカードを紐付け（default payment method に設定）
-    - 月額サブスクを作成: STRIPE_PRICE_MONTHLY, trial_period_days: 3
-      （冪等キー checkout_sub_{session_id}、既存のサブスクがあれば再利用）
-    - DB: users.plan = 'premium'、stripe_subscriptions を作成
-    - Resend で決済完了メール（トライアル終了日つき）を送信
+- Stripe API から Checkout Session を取得し、payment_status === "paid" を確認
+- 顧客とカードを紐付け（default payment method に設定）
+- 月額サブスクを作成: STRIPE_PRICE_MONTHLY, trial_period_days: 3
+  （冪等キー checkout_sub_{session_id}、既存のサブスクがあれば再利用）
+- DB: users.plan = 'premium'、stripe_subscriptions を作成
+- Resend で決済完了メール（トライアル終了日つき）を送信
 
 #### ⑤ 結果によって分岐
-    premium → 詳細結果をサーバー側で描画して表示
-    pending（3Dセキュアの処理中など） → クライアントが 2秒間隔で最大5回ポーリング
-    ended（解約済み） → 無料ページへ戻す
-⑥ クライアントで GA の purchase イベントを1回だけ送信
+  premium → 詳細結果をサーバー側で描画して表示
+  pending（3Dセキュアの処理中など） → クライアントが 2秒間隔で最大5回ポーリング
+  ended（解約済み） → 無料ページへ戻す
+
+### ⑥ クライアントで GA の purchase イベントを1回だけ送信
 
 
 ## Webhook イベント処理
