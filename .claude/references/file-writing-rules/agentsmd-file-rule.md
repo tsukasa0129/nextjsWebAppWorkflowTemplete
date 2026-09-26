@@ -119,10 +119,15 @@ AIエージェントのルートとなる指示書
 
 ## 動作テスト
 ### webアプリの場合
-- mainブランチにマージしたら自動的にstagingブランチにも更新されるようにする。
-- verselのプレビュー環境のNEXT_PUBLIC_APP_URLにstaging.domain.comを紐付けてそこで自動連携するようにする。
-- staging.domain.comをエージェントが使えるテストurlにする。
-- Playwright の MCP サーバー(`mcp__playwright__*`)を使用する。
+- Vercel で `staging.domain.com` を `staging` ブランチに割り当てる。環境変数（`NEXT_PUBLIC_APP_URL` など）は Preview の Git Branch を `staging` に限定して設定する。
+- アプリは `staging.domain.com` を、決済の戻り先・メールのリンクの起点として受け付ける。本番以外は robots.txt で検索に載せない。
+- 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、Supabase の Redirect URLs、OAuth のコールバック）は `staging.domain.com` に向ける。
+- `staging.domain.com` を、エージェントが使うテスト用の URL にする。
+  - Vercel のアクセス保護は、Protection Bypass for Automation のキーで通す（キーは環境変数 `VERCEL_AUTOMATION_BYPASS_SECRET` で渡し、チャットやコードに書かない）。
+  - エージェントの実行環境のネットワーク設定で `staging.domain.com` への接続を許可する。
+- ブラウザでの確認は Playwright の MCP サーバー（`mcp__playwright__*`）で行う。Bypass のキーは追加ヘッダー `x-vercel-protection-bypass` で渡す。
+- Stripe はテストモードのキーとテストカードだけを使う。ログインが必要なときは、資格情報を推測せずユーザーに尋ねる。
+
 
 ### ネイティブアプリの場合
 - ネイティブアプリの場合はExpo MCPでEAS Workflowsを作成・実行し、MaestroテストをEAS側のクラウド環境で走らせる。VMの中でエミュレータを動かすのではなく、テスト実行をEASに任せる
