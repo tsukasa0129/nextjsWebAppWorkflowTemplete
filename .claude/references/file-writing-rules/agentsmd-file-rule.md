@@ -118,7 +118,13 @@ AIエージェントのルートとなる指示書
 
 
 ## 動作テスト
-- webアプリの場合は、verselのプレビュー環境でPlaywright の MCP サーバー(`mcp__playwright__*`)を使用する。
+### webアプリの場合
+- mainブランチにマージしたら自動的にstagingブランチにも更新されるようにする。
+- verselのプレビュー環境のNEXT_PUBLIC_APP_URLにstaging.domain.comを紐付けてそこで自動連携するようにする。
+- staging.domain.comをエージェントが使えるテストurlにする。
+- Playwright の MCP サーバー(`mcp__playwright__*`)を使用する。
+
+### ネイティブアプリの場合
 - ネイティブアプリの場合はExpo MCPでEAS Workflowsを作成・実行し、MaestroテストをEAS側のクラウド環境で走らせる。VMの中でエミュレータを動かすのではなく、テスト実行をEASに任せる
 - テストの認証情報はid,emailは`tukasa0129atmyhome@gmail.com`、passは`test`にする
 - テストの決済情報はカード番号は`4242 4242 4242 4242`、名前は`test`にする。他の情報は適当でOK。
