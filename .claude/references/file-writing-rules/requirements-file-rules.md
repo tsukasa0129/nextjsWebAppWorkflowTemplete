@@ -30,4 +30,5 @@
 
 
 ## 注意
- - ストライプで決済機能を構築する時はこの指示に従ってください（`references/payment/stripe-payment-method.md`）
+ - ストライプで決済機能を構築する時はこの指示に従ってください（`references/stripe-payment-method.md`）
+ - メール送信機能を構築する時はこの指示に従ってください（`references/mail.md`）
