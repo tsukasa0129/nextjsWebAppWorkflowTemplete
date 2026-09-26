@@ -1,6 +1,6 @@
-# メール登録→Stripe決済→アプリ案内までの一環
+# Stripe決済→アプリ案内までの一環
 
-セッション管理、ユーザー管理は基本的にCookieベースで行う
+セッション管理、ユーザー管理は基本的にCookie、クエリパラメーターベースで行う
 
 
 ## 概要
@@ -127,123 +127,22 @@ Express: checkout.confirm({ expressCheckoutConfirmEvent })
 - 月額サブスクを作成: STRIPE_PRICE_MONTHLY, trial_period_days: 3
   （冪等キー checkout_sub_{session_id}、既存のサブスクがあれば再利用）
 - DB: users.plan = 'premium'、stripe_subscriptions を作成
-- Resend で決済完了メール（トライアル終了日つき）を送信
+- 決済完了メール（トライアル終了日つき）を送信
 
 #### ⑤ 結果によって分岐
-  premium → 詳細結果をサーバー側で描画して表示
-  pending（3Dセキュアの処理中など） → クライアントが 2秒間隔で最大5回ポーリング
-  ended（解約済み） → 無料ページへ戻す
+premium → 詳細結果をサーバー側で描画して表示
+pending（3Dセキュアの処理中など） → クライアントが 2秒間隔で最大10回ポーリング
+ended（解約済み） → 無料ページへ戻す
 
-### ⑥ クライアントで GA の purchase イベントを1回だけ送信
+
 
 
 ## Webhook イベント処理
 
 | イベント | トリガー | 処理内容 |
 |---------|---------|---------|
-| `checkout.session.completed` | Embedded Checkout 決済完了 | `createSubscriptionRecord()` で DB 作成 + statusを `trial` に + メール送信 |
-| `invoice.payment_succeeded` | 請求成功（トライアル後の月次課金含む） | 既存レコードあり → status/period 更新。なし → `createSubscriptionRecord()` で作成（SCA フォールバック） |
+| `checkout.session.completed` | 決済完了 |  DB 作成 + statusを `trial` に + メール送信 |
+| `invoice.payment_succeeded` | 請求成功（トライアル後の月次課金含む） | 既存レコードあり → status/period 更新。なし → トライアル3日のサブスク作成（SCA フォールバック） |
 | `customer.subscription.updated` | サブスクリプション変更 | status, period, canceled_at を同期 |
 | `customer.subscription.deleted` | サブスクリプション削除 | status を `canceled` に更新 |
 | `invoice.payment_failed` | 月次課金失敗 | status を `past_due` に更新 |
-
-### 共通ヘルパー: `createSubscriptionRecord()`
-
-`src/lib/subscription-helpers.ts` に定義。以下の処理を一括で行う：
-
-1. `subscriptions` テーブルに INSERT
-2. `test_sessions.status` を `paid` に UPDATE
-3. 決済完了メール送信（非同期・ノンブロッキング）
-
-Webhook（`checkout.session.completed`, `invoice.payment_succeeded`）と Wallet Pay API の3箇所から共通利用。
-
-### 冪等性
-
-- `subscriptions.stripe_subscription_id` の UNIQUE 制約が重複挿入を防止
-- `test_sessions.status = 'paid'` への更新は冪等
-- `checkout.session.completed` と `invoice.payment_succeeded` が両方発火しても安全
-
-## useWalletPay フック
-
-`src/lib/hooks/use-wallet-pay.ts` — Payment Request API のライフサイクルをカプセル化。
-
-```typescript
-function useWalletPay(options: {
-  token: string;
-  sessionId: string;
-  enabled: boolean;
-  onSuccess: () => void;
-  onError: (message: string) => void;
-}): {
-  canApplePay: boolean;
-  canGooglePay: boolean;
-  isProcessing: boolean;
-  triggerWalletPay: () => void;
-}
-```
-
-**内部ロジック:**
-
-1. `stripePromise` を解決 → `stripe.paymentRequest()` で PaymentRequest を初期化
-2. `canMakePayment()` で Apple Pay / Google Pay の利用可否を判定
-3. `paymentmethod` イベントリスナーで `/api/wallet-pay` に送信
-4. `triggerWalletPay` → `paymentRequest.show()` を呼び出し（ユーザージェスチャー内から同期的に）
-
-**注意点:**
-
-- `paymentRequest.show()` はクリックイベント内から同期的に呼ぶ必要がある
-- コールバック ref パターンで React の再レンダリングによる Payment Request の再初期化を防止
-
-
-## 決済成功後のリダイレクト
-
-- URL: `/results/[token]?checkout=success`
-- Embedded Checkout: Stripe が `return_url` にリダイレクト
-- Wallet Pay: フロントエンドで `router.push()` によりリダイレクト
-
-## バリデーション
-
-| 項目 | ルール |
-|------|--------|
-| session_id | UUID 形式であること |
-| token | URL 安全な文字列であること |
-| セッション | email が登録済みであること |
-| セッション | status が `paid` でないこと（重複決済防止） |
-| payment_method_id | Wallet Pay 時のみ必須 |
-| Webhook 署名 | Stripe の署名検証に通ること |
-
-## 関連テーブル
-
-### subscriptions
-
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | uuid (PK) | サブスクリプションレコード ID |
-| session_id | uuid (FK) | テストセッション ID |
-| stripe_customer_id | text | Stripe 顧客 ID |
-| stripe_subscription_id | text (UNIQUE) | Stripe サブスクリプション ID |
-| stripe_checkout_session_id | text | Stripe Checkout セッション ID（Wallet Pay 時は null） |
-| status | text | ステータス（trialing / active / canceled / past_due） |
-| trial_amount | integer | トライアル金額（199） |
-| recurring_amount | integer | 月額金額（5000） |
-| currency | text | 通貨（jpy） |
-| trial_end_at | timestamptz | トライアル終了日時 |
-| current_period_start_at | timestamptz | 現在の課金期間開始日時 |
-| current_period_end_at | timestamptz | 現在の課金期間終了日時 |
-| canceled_at | timestamptz | 解約日時 |
-| created_at | timestamptz | レコード作成日時 |
-| updated_at | timestamptz | レコード更新日時 |
-
-
-## エラーハンドリング
-
-| エラーケース | 処理 |
-|-------------|------|
-| Checkout Session 作成失敗 | 500 エラー。「決済を開始できません。」表示 |
-| Wallet Pay 決済失敗 | エラーメッセージをプレビューページに表示 |
-| SCA (3D Secure) 認証失敗 | 「3Dセキュア認証に失敗しました。」表示 |
-| Webhook 署名検証失敗 | 400 エラーを返す。ログに記録 |
-| Webhook 内の DB 更新失敗 | 500 エラーを返す。Stripe が自動リトライ |
-| 重複 Webhook 受信 | `stripe_subscription_id` の UNIQUE 制約で安全に処理 |
-| sessionStorage にデータなし | チェックアウトページで「プレビューに戻る」リンクを表示 |
-| 既に決済済み | 409 エラー + 結果ページへのリダイレクト URL を返却 |
