@@ -29,7 +29,7 @@ Stripe Custom Checkout（ui_mode: "elements"）を使用。
 ├────────────────────────────────┤
 │  ┌──────────────────────────┐  │  ← 展開時: Stripe PaymentElement（タブレイアウト）
 ┌────────────────────────────────┐
-│   link で支払う          │  ← Google Pay（ボタンは ExpressCheckoutElement が描画する Stripe 標準のもの）
+│   link で支払う          │ 
 └────────────────────────────────┘
 │  │  カード番号              │  │     + 送信ボタン「¥199で今すぐ結果を見る」
 │  │  有効期限  CVC           │  │     （ネイビー背景、CreditCardアイコン付き）
@@ -48,6 +48,11 @@ Stripe Custom Checkout（ui_mode: "elements"）を使用。
 | 支払いボタン           | 「¥199で今すぐ結果を見る」。処理中はスピナーを表示し、エラーは赤いボックスに出します                                                                |
 | その他                 | これらは CheckoutElementsProvider（:748）で囲まれていて、UIは locale: "ja" の日本語で表示されます（lib/stripe-client.ts）。                |
 
+#### Express Checkout Element のオプションの制約
+
+layout.overflow: "never" は maxRows が 0（無制限）のときだけ指定できる。maxRows を指定するなら overflow は "auto" にする。
+現在の正しい値を 1 か所にまとめて書く: layout: { maxColumns: 1, maxRows: 3, overflow: "auto" }、paymentMethods: { applePay: "always", googlePay: "always" }、paymentMethodOrder: ["apple_pay", "google_pay", "link"]。
+オプションを変えるときは Stripe.js の型定義（@stripe/stripe-js の express-checkout.d.ts）と公式リファレンスで制約を確認する
 
 - **PaymentElement**: `layout: "tabs"`, `terms: { card: "never" }`,`wallets: { applePay: "never", googlePay: "never" }`（カード規約非表示）
 - **送信ボタン**: bg-[#1a1f3d]（ネイビー）rounded-lg py-3.5 text-sm font-medium text-white で、CreditCard アイコンと「¥199で今すぐ結果を見る」の文言
