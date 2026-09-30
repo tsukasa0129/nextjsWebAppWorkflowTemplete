@@ -134,10 +134,23 @@ https://tsk-cc.com/
 - 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、認証のコールバック URL、OAuth のコールバック）は `staging.domain.com` に向ける。
 - ステージングのメールは `allowed_destination_addresses` でテスト用アドレスにだけ送れるようにする。
 - `staging.domain.com` を、エージェントが使うテスト用の URL にする。`staging` に push したあとは、Worker の Builds タブでデプロイ完了を確認してからテストする。
-  - `staging.domain.com` は Cloudflare Access で保護し、エージェントは Service Token で通す（キーは環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` で渡し、チャットやコードに書かない）。
+  - `staging.domain.com` を含むプレビュー用の URL は、すべて Cloudflare Access で管理する（詳細は下の「プレビュー URL のアクセス管理」）。
   - エージェントの実行環境のネットワーク設定で `staging.domain.com` への接続を許可する。
 - ブラウザでの確認は Playwright の MCP サーバー（`mcp__playwright__*`）で行う。Service Token は追加ヘッダー `CF-Access-Client-Id` / `CF-Access-Client-Secret` で渡す。
 - Stripe はテストモードのキーとテストカードだけを使う。ログインが必要なときは、資格情報を推測せずユーザーに尋ねる。
+
+#### プレビュー URL のアクセス管理（Cloudflare Access）
+- プレビュー用の URL（`staging.domain.com`、ステージング Worker の `workers.dev`、Workers の Preview URLs）は、すべて Cloudflare Access で保護し、一般に公開しない。本番ドメインは保護しない。
+- 保護はステージング Worker に付ける（**Workers & Pages** → `{project}-staging` → **Settings** → **Domains & Routes** → **Enable Cloudflare Access** で、Preview と Production の両方を対象にする）。Worker に付けると、Custom Domain・`workers.dev`・Preview URLs がまとめて保護され、ドメインを追加しても保護が外れない。本番 Worker は Preview URLs だけを保護する。
+- ポリシーは次の 2 つを持たせる。
+  | ポリシー | Action | 対象 |
+  |---|---|---|
+  | 開発者 | Allow | ユーザーのメールアドレス（ワンタイム PIN などでログイン） |
+  | エージェント・自動テスト | Service Auth | Service Token `{project}-agent` |
+- 外部サービスから呼ばれるパス（Stripe の Webhook `/api/webhooks/*` など）は、Access の対象から外す（パスを指定した別の Access アプリケーションに Bypass ポリシーを付ける）。外したパスは、署名の検証で守る。
+- エージェントは Service Token で通る。トークンは環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` で渡し、リクエストに `CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダーを付ける。チャットやコードに値を書かない。
+- Service Token には有効期限がある。期限の前に作り直し、環境変数を入れ替える。
+- アプリ側でも、`Cf-Access-Jwt-Assertion` ヘッダーの JWT を検証するとより安全になる（ステージングだけで有効にする）。
 
 
 ### ネイティブアプリの場合
