@@ -176,6 +176,23 @@ npx opennextjs-cloudflare deploy -- --env staging
 
 ビルドの結果とログは、各 Worker の **Deployments** / **Builds** タブで確認する。
 
+### プレビュー URL の保護（Cloudflare Access）
+
+`staging.example.com` などのプレビュー用の URL は Cloudflare Access で管理する（ルールは AGENTS.md の「プレビュー URL のアクセス管理」）。
+
+1. Zero Trust が未設定なら有効にする（チーム名とプランの選択。**ユーザータスク**）。
+2. `{project}-staging` の **Settings** → **Domains & Routes** → **Enable Cloudflare Access** で、Preview と Production の両方を保護する。本番の `{project}` は Preview URLs だけを保護する。
+3. **Zero Trust** → **Access controls** → **Service credentials** → **Service Tokens** で `{project}-agent` を作り、Client ID と Client Secret を環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入れる（Secret は作成時にしか表示されない）。
+4. ステージングのポリシーに、開発者のメールアドレスの Allow と、`{project}-agent` の Service Auth を追加する。
+5. Stripe の Webhook など外部から呼ばれるパス（`staging.example.com/api/webhooks/*`）に、Bypass ポリシーの Access アプリケーションを作る。
+6. 確認：ヘッダーなしの `curl -I https://staging.example.com` がログイン画面にリダイレクトされ、Service Token のヘッダーを付けると 200 が返る。
+
+```bash
+curl -I https://staging.example.com \
+  -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+  -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET"
+```
+
 ## 注意事項
 
 - フレームワーク初期化時に `CLAUDE.md` や `docs/` が上書きされないようにする
