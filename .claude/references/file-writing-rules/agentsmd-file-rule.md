@@ -94,6 +94,7 @@ https://tsk-cc.com/
 - `'use client'` は必要最小限のコンポーネントのみに付与
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
 - ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）
+- ホストするときは、アプリ専用のドメインを取得し（Cloudflare Registrar を基本とする）、Cloudflare を権威 DNS にして Workers の Custom Domains で紐付ける。アプリの本番は `app.` のサブドメイン（`app.domain.com`）でホストし、apex と `www` は LP 用に空けておく。`workers.dev` のまま公開しない（手順は `.claude/references/cli-setup.md` の「ドメインの取得と紐付け」）
 - デプロイは Cloudflare 側の GitHub 連携（Workers Builds）で行う。`main` への push で本番、`staging` への push でステージングにデプロイされる。本番へ手動で `deploy` コマンドを実行しない（手順は `.claude/references/cli-setup.md`）
 - D1 のスキーマ変更は必ずマイグレーション経由（Drizzle で SQL を生成し `wrangler d1 migrations apply` で適用。`migrations/` を git 管理する）
 - D1 には RLS がないため、ユーザー所有テーブルへのアクセスは必ずサーバー側のデータアクセス層を通し、`user_id` で絞り込む。クライアントから DB に直接触らせない
@@ -140,7 +141,7 @@ https://tsk-cc.com/
 - Stripe はテストモードのキーとテストカードだけを使う。ログインが必要なときは、資格情報を推測せずユーザーに尋ねる。
 
 #### プレビュー URL のアクセス管理（Cloudflare Access）
-- プレビュー用の URL（`staging.domain.com`、ステージング Worker の `workers.dev`、Workers の Preview URLs）は、すべて Cloudflare Access で保護し、一般に公開しない。本番ドメインは保護しない。
+- プレビュー用の URL（`staging.domain.com`、ステージング Worker の `workers.dev`、Workers の Preview URLs）は、すべて Cloudflare Access で保護し、一般に公開しない。本番の `app.domain.com` は保護しない。
 - 保護はステージング Worker に付ける（**Workers & Pages** → `{project}-staging` → **Settings** → **Domains & Routes** → **Enable Cloudflare Access** で、Preview と Production の両方を対象にする）。Worker に付けると、Custom Domain・`workers.dev`・Preview URLs がまとめて保護され、ドメインを追加しても保護が外れない。本番 Worker は Preview URLs だけを保護する。
 - ポリシーは次の 2 つを持たせる。
   | ポリシー | Action | 対象 |

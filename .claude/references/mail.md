@@ -175,7 +175,7 @@ const mask = (e: string) => { const [l, d] = e.split("@"); return d ? `${l.slice
 認証は D1 上で動く認証ライブラリ（Better Auth など）で行い、メールは 3 章の関数で送る。
 
 1. 認証ライブラリの `sendMagicLink` / `sendVerificationEmail` などのコールバックから `sendEmail()` を呼ぶ。
-2. **Base URL** を環境ごとの本番・ステージングのドメインにする（`NEXT_PUBLIC_APP_URL`）。localhost のままだと、リンクが壊れる。
+2. **Base URL** を環境ごとの本番（`app.example.com`）・ステージング（`staging.example.com`）のドメインにする（`NEXT_PUBLIC_APP_URL`）。localhost のままだと、リンクが壊れる。
 3. **Trusted Origins / コールバック URL** に、本番・ステージング・localhost の `/api/auth/**` を登録する。
 4. リンクのトークンは短い有効期限（10〜15 分）・1 回限りにし、D1 に保存するのはハッシュだけにする。
 5. 同じアドレスへの送信回数を制限する（Workers の Rate Limiting バインディングか D1 のカウンター）。
