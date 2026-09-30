@@ -143,15 +143,38 @@ git add .
 git commit -m "Initial project scaffold"
 ```
 
-## デプロイ
+## デプロイ（Workers Builds）
+
+Web アプリのデプロイは、Cloudflare 側の GitHub 連携（Workers Builds）で行う。GitHub Actions やローカルからの `deploy` コマンドでは本番に出さない。
+
+### 構成
+
+| Worker | 接続するブランチ | Build command | Deploy command |
+|---|---|---|---|
+| `{project}`（本番） | `main` | `npx opennextjs-cloudflare build` | `npx opennextjs-cloudflare deploy` |
+| `{project}-staging`（ステージング） | `staging` | `npx opennextjs-cloudflare build` | `npx opennextjs-cloudflare deploy -- --env staging` |
+
+- **Root directory** は `app`（`wrangler.jsonc` がある場所）にする。
+- Worker の名前は `wrangler.jsonc` の `name`（ステージングは `{name}-staging`）と一致させる。一致しないとビルドが失敗する。
+- 本番 Worker の **non-production branch builds** は有効にしてよいが、その場合のコマンドは `npx opennextjs-cloudflare upload`（バージョンのアップロードのみ。本番には出ない）にする。`deploy` にしない。
+- ビルド時に必要な環境変数（`NEXT_PUBLIC_*` など）は、各 Worker の **Settings** → **Builds** → **Variables and secrets** にも登録する。実行時の値は `wrangler.jsonc` の `vars` と `wrangler secret put` で持つ。
+- マイグレーションは Deploy command の前に `npx wrangler d1 migrations apply {project}-db --remote &&` を付けて自動で適用する（ステージングは `{project}-db-staging --remote --env staging`）。
+
+### 接続手順
+
+1. 初回だけ、Worker を作るために一度デプロイする（エージェントが実行する）。
 
 ```bash
 npx opennextjs-cloudflare build
-npx opennextjs-cloudflare deploy                    # 本番
-npx opennextjs-cloudflare deploy -- --env staging   # ステージング
+npx opennextjs-cloudflare deploy
+npx opennextjs-cloudflare deploy -- --env staging
 ```
 
-本番ドメインと `staging.example.com` は、Workers の Custom Domains で各 Worker に割り当てる。GitHub 連携（Workers Builds）で `main` → 本番、`staging` → ステージングに自動デプロイする。
+2. Cloudflare ダッシュボード → **Workers & Pages** → 各 Worker → **Settings** → **Builds** → **Connect** で GitHub リポジトリを接続し、上の表の設定を入れる。Cloudflare の GitHub App をリポジトリにインストールする操作は**ユーザータスク**にする。
+3. 本番ドメインと `staging.example.com` を、各 Worker の **Settings** → **Domains & Routes** の Custom Domains で割り当てる。
+4. `main` と `staging` に push し、ビルドとデプロイが成功することを確認する。以後はブランチへの push（PR のマージ）でデプロイされる。
+
+ビルドの結果とログは、各 Worker の **Deployments** / **Builds** タブで確認する。
 
 ## 注意事項
 
