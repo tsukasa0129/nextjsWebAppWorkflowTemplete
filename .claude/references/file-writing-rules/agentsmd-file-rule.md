@@ -93,6 +93,7 @@ AIエージェントのルートとなる指示書
 - `'use client'` は必要最小限のコンポーネントのみに付与
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
 - ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）
+- デプロイは Cloudflare 側の GitHub 連携（Workers Builds）で行う。`main` への push で本番、`staging` への push でステージングにデプロイされる。本番へ手動で `deploy` コマンドを実行しない（手順は `.claude/references/cli-setup.md`）
 - D1 のスキーマ変更は必ずマイグレーション経由（Drizzle で SQL を生成し `wrangler d1 migrations apply` で適用。`migrations/` を git 管理する）
 - D1 には RLS がないため、ユーザー所有テーブルへのアクセスは必ずサーバー側のデータアクセス層を通し、`user_id` で絞り込む。クライアントから DB に直接触らせない
 - Cloudflare のリソース（D1・R2・メール）はバインディング経由で使い、`getCloudflareContext()` で取得する
@@ -127,11 +128,11 @@ AIエージェントのルートとなる指示書
 
 ## 動作テスト
 ### webアプリの場合
-- Cloudflare Workers の `staging` 環境（`wrangler.jsonc` の `env.staging`）を `staging` ブランチからデプロイし、Custom Domains で `staging.domain.com` を割り当てる。環境変数（`NEXT_PUBLIC_APP_URL` など）・D1・メールのバインディングは `env.staging` に分けて設定する。
+- Cloudflare Workers の `staging` 環境（`wrangler.jsonc` の `env.staging`）を、Workers Builds で `staging` ブランチから自動デプロイし、Custom Domains で `staging.domain.com` を割り当てる。環境変数（`NEXT_PUBLIC_APP_URL` など）・D1・メールのバインディングは `env.staging` に分けて設定する。
 - アプリは `staging.domain.com` を、決済の戻り先・メールのリンクの起点として受け付ける。本番以外は robots.txt で検索に載せない。
 - 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、認証のコールバック URL、OAuth のコールバック）は `staging.domain.com` に向ける。
 - ステージングのメールは `allowed_destination_addresses` でテスト用アドレスにだけ送れるようにする。
-- `staging.domain.com` を、エージェントが使うテスト用の URL にする。
+- `staging.domain.com` を、エージェントが使うテスト用の URL にする。`staging` に push したあとは、Worker の Builds タブでデプロイ完了を確認してからテストする。
   - `staging.domain.com` は Cloudflare Access で保護し、エージェントは Service Token で通す（キーは環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` で渡し、チャットやコードに書かない）。
   - エージェントの実行環境のネットワーク設定で `staging.domain.com` への接続を許可する。
 - ブラウザでの確認は Playwright の MCP サーバー（`mcp__playwright__*`）で行う。Service Token は追加ヘッダー `CF-Access-Client-Id` / `CF-Access-Client-Secret` で渡す。
