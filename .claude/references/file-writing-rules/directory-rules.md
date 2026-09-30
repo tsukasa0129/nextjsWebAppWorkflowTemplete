@@ -18,7 +18,7 @@
 ファイルを含む詳細なパス構造はこのファイルで管理します。
 
 > 構造を変更した場合は、このファイルと `.codex/AGENTS.md` の両方を更新してください。
-> `node_modules/` `.next/` `.vercel/` など生成物・依存物は省略しています。
+> `node_modules/` `.next/` `.open-next/` `.wrangler/` など生成物・依存物は省略しています。
 
 ```text
 app/                                        # Next.js アプリ（ルート）

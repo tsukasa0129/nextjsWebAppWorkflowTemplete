@@ -18,9 +18,13 @@ npm -v
 
 ### Next.js の場合
 
+Cloudflare Workers 向けのテンプレートで初期化する（OpenNext アダプター・`wrangler.jsonc` が入った状態で生成される）。
+
 ```bash
-npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"
+npm create cloudflare@latest . -- --framework=next --platform=workers
 ```
+
+既存の Next.js プロジェクトに後から入れる場合は `npx @opennextjs/cloudflare migrate` を使う。
 
 ### Nuxt の場合
 
@@ -34,10 +38,11 @@ npx nuxi@latest init . --force
 
 提案した技術スタックに必要なパッケージをインストールする。
 
-### Supabase
+### Cloudflare（D1・認証・メール）
 
 ```bash
-npm install @supabase/supabase-js @supabase/ssr
+npm install drizzle-orm better-auth @react-email/components @react-email/render
+npm install -D drizzle-kit wrangler
 ```
 
 ### Stripe
@@ -56,26 +61,59 @@ npm install stripe @stripe/stripe-js @stripe/react-stripe-js
 npm install {提案で選定したライブラリ}
 ```
 
-## Supabase CLIセットアップ
+## Cloudflare リソースのセットアップ
 
-Supabase を使う場合のみ実行する。
+`CLOUDFLARE_API_TOKEN` が設定済みなので、エージェントが直接実行する。
 
 ```bash
-npx supabase --version || npm install -g supabase
-npx supabase init
+npx wrangler whoami
+# D1（本番・ステージング）
+npx wrangler d1 create {project}-db
+npx wrangler d1 create {project}-db-staging
+# R2（ファイル保存が必要な場合のみ）
+npx wrangler r2 bucket create {project}-files
 ```
 
-これにより `supabase/` ディレクトリが生成される。
+出力された `database_id` を `wrangler.jsonc` の `d1_databases` に書く。ステージングは `env.staging` に分けて定義する。
+
+```jsonc
+{
+  "name": "{project}",
+  "main": ".open-next/worker.js",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{ "binding": "DB", "database_name": "{project}-db", "database_id": "xxxx", "migrations_dir": "migrations" }],
+  "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["noreply@example.com", "support@example.com"] }],
+  "vars": { "NEXT_PUBLIC_APP_URL": "https://example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" },
+  "env": {
+    "staging": {
+      "d1_databases": [{ "binding": "DB", "database_name": "{project}-db-staging", "database_id": "yyyy", "migrations_dir": "migrations" }],
+      "send_email": [{ "name": "EMAIL", "allowed_destination_addresses": ["tukasa0129atmyhome@gmail.com"] }],
+      "vars": { "NEXT_PUBLIC_APP_URL": "https://staging.example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" }
+    }
+  }
+}
+```
+
+バインディングの型は `npx wrangler types` で生成する。
+
+マイグレーションは Drizzle で SQL を生成し、wrangler で適用する。
+
+```bash
+npx drizzle-kit generate
+npx wrangler d1 migrations apply {project}-db --local
+npx wrangler d1 migrations apply {project}-db --remote
+npx wrangler d1 migrations apply {project}-db-staging --remote --env staging
+```
+
+メールの送信・受信の設定は `.claude/references/mail.md` に従う。
 
 ## 環境変数ファイル作成
 
-`.env.local` をプレースホルダー値で生成する。
+ローカル開発用の秘密値は `.dev.vars` にプレースホルダー値で生成する（本番・ステージングは `wrangler secret put` で登録する）。公開してよい値は `wrangler.jsonc` の `vars` に書く。
 
 ```bash
-# === Supabase ===
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# === 認証 ===
+BETTER_AUTH_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # === Stripe（決済ありの場合） ===
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -91,7 +129,9 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 - `.env.local`
 - `.env*.local`
-- `supabase/.temp/`
+- `.dev.vars*`
+- `.wrangler/`
+- `.open-next/`
 
 ## Git初期化
 
@@ -103,21 +143,20 @@ git add .
 git commit -m "Initial project scaffold"
 ```
 
-## Vercelプロジェクトセットアップ
-
-Vercel を使う場合のみ実行する。
+## デプロイ
 
 ```bash
-npx vercel --version || npm install -g vercel
-npx vercel link
+npx opennextjs-cloudflare build
+npx opennextjs-cloudflare deploy                    # 本番
+npx opennextjs-cloudflare deploy -- --env staging   # ステージング
 ```
 
-Vercel にログインしていない場合は `npx vercel login` が先に必要。ログインはユーザータスクとして扱う。
+本番ドメインと `staging.example.com` は、Workers の Custom Domains で各 Worker に割り当てる。GitHub 連携（Workers Builds）で `main` → 本番、`staging` → ステージングに自動デプロイする。
 
 ## 注意事項
 
 - フレームワーク初期化時に `CLAUDE.md` や `docs/` が上書きされないようにする
 - パッケージインストールでエラーが出た場合は、エラー内容をユーザーに報告し、必要なら手動対応を促す
-- `supabase init` は Supabase CLI がグローバルインストールされていなくても `npx supabase init` で動作する
+- `wrangler` は devDependencies に入れて `npx wrangler` で使う。認証は `CLOUDFLARE_API_TOKEN` で行うため、`wrangler login` は不要
 - Stripe CLI のインストール・ログインはユーザータスクとして扱う
-- Vercel CLI のログインはトークン認証が必要なためユーザータスクとして扱う
+- ドメインのネームサーバーを Cloudflare に向ける作業はユーザータスクとして扱う
