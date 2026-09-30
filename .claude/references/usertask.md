@@ -11,7 +11,7 @@
 - R2 バケット・KV ネームスペースの作成・管理
 - Workers の初回デプロイ・設定確認・シークレット登録（`wrangler secret put`）
 - Workers Builds のビルド設定（Build / Deploy command、ブランチ、ビルド時の変数）とビルドログの確認
-- 取得したドメインの Cloudflare 権威 DNS への反映確認と、Workers の Custom Domains（本番・`www`・`staging.domain.com`）への紐付け
+- 取得したドメインの Cloudflare 権威 DNS への反映確認と、Workers の Custom Domains（本番の `app.domain.com`・`staging.domain.com`）への紐付け
 - Cloudflare Access によるプレビュー URL（`staging.domain.com` など）の保護、ポリシーと Service Token の作成
 - Email Service（Email Sending）へのドメイン登録、Email Routing のルーティングルール作成
 - Cloudflare ドキュメントの検索

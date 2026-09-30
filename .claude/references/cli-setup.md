@@ -83,7 +83,7 @@ npx wrangler r2 bucket create {project}-files
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [{ "binding": "DB", "database_name": "{project}-db", "database_id": "xxxx", "migrations_dir": "migrations" }],
   "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["noreply@example.com", "support@example.com"] }],
-  "vars": { "NEXT_PUBLIC_APP_URL": "https://example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" },
+  "vars": { "NEXT_PUBLIC_APP_URL": "https://app.example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" },
   "env": {
     "staging": {
       "d1_databases": [{ "binding": "DB", "database_name": "{project}-db-staging", "database_id": "yyyy", "migrations_dir": "migrations" }],
@@ -145,7 +145,7 @@ git commit -m "Initial project scaffold"
 
 ## ドメインの取得と紐付け
 
-ホストするときは、アプリ専用のドメインを取得し、Cloudflare を権威 DNS にして Worker に紐付ける。`workers.dev` のまま公開しない。
+ホストするときは、アプリ専用のドメインを取得し、Cloudflare を権威 DNS にして Worker に紐付ける。`workers.dev` のまま公開しない。**アプリの本番は `app.` のサブドメイン（`app.{app-name}.com`）でホストする。**
 
 1. アプリ名に合ったドメインを取得する（例：`{app-name}.com`）。**Cloudflare Registrar で取得する**のを基本にする（Cloudflare が最初から権威 DNS になり、ネームサーバーの変更が要らない）。取得と支払いは**ユーザータスク**にする。
    - 他のレジストラで取得済みの場合は、Cloudflare にドメイン（ゾーン）を追加し、レジストラ側でネームサーバーを Cloudflare が指定する 2 つに変える（**ユーザータスク**）。ゾーンが **Active** になるまで待つ。
@@ -154,15 +154,14 @@ git commit -m "Initial project scaffold"
 
 | ホスト名 | Worker | 用途 |
 |---|---|---|
-| `{app-name}.com` | `{project}` | 本番 |
-| `www.{app-name}.com` | `{project}` | 本番（apex にリダイレクト） |
+| `app.{app-name}.com` | `{project}` | アプリの本番 |
 | `staging.{app-name}.com` | `{project}-staging` | ステージング（Cloudflare Access で保護） |
+| `{app-name}.com`・`www.{app-name}.com` | アプリの Worker には割り当てない | LP・紹介サイト用に空けておく。LP がない間は Redirect Rules で `app.{app-name}.com` に 302 で転送する |
 
 ```jsonc
 {
   "routes": [
-    { "pattern": "{app-name}.com", "custom_domain": true },
-    { "pattern": "www.{app-name}.com", "custom_domain": true }
+    { "pattern": "app.{app-name}.com", "custom_domain": true }
   ],
   "workers_dev": false,
   "env": {
@@ -175,8 +174,8 @@ git commit -m "Initial project scaffold"
 
 - Custom Domain を割り当てると、DNS レコードと証明書は Cloudflare が自動で作る。同じホスト名の既存レコードがあると失敗するので、先に確認する。
 - `workers_dev: false` にして、公開 URL をドメインに一本化する。Workers Builds の非本番ブランチのビルドで Preview URLs を使う場合は、`"preview_urls": true` も書く（Preview URLs は Cloudflare Access で保護する）。
-- `www` から apex へのリダイレクトは、Cloudflare の Redirect Rules（Single Redirects）で 301 にする。
-- `NEXT_PUBLIC_APP_URL`・メールの送信ドメイン・Email Routing・Stripe の Webhook・認証のコールバック URL は、すべてこのドメインに揃える。
+- メールの送信・受信は apex（`noreply@{app-name}.com`・`support@{app-name}.com`）のまま使う。アプリのホストを `app.` にしても変えない。
+- `NEXT_PUBLIC_APP_URL`・Stripe の Webhook・認証のコールバック URL・メール内のリンクは、本番は `app.{app-name}.com`、ステージングは `staging.{app-name}.com` に揃える。
 - 取得したドメインは `docs/env-variables/env-variables.md` と AGENTS.md に記録する。自動更新を有効にし、期限切れで止まらないようにする。
 
 ## デプロイ（Workers Builds）
@@ -207,7 +206,7 @@ npx opennextjs-cloudflare deploy -- --env staging
 ```
 
 2. Cloudflare ダッシュボード → **Workers & Pages** → 各 Worker → **Settings** → **Builds** → **Connect** で GitHub リポジトリを接続し、上の表の設定を入れる。Cloudflare の GitHub App をリポジトリにインストールする操作は**ユーザータスク**にする。
-3. 本番ドメインと `staging.example.com` を、各 Worker の **Settings** → **Domains & Routes** の Custom Domains で割り当てる。
+3. 本番の `app.example.com` と `staging.example.com` を、各 Worker の **Settings** → **Domains & Routes** の Custom Domains で割り当てる。
 4. `main` と `staging` に push し、ビルドとデプロイが成功することを確認する。以後はブランチへの push（PR のマージ）でデプロイされる。
 
 ビルドの結果とログは、各 Worker の **Deployments** / **Builds** タブで確認する。
