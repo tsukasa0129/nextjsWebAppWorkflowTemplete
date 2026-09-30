@@ -94,6 +94,7 @@ https://tsk-cc.com/
 - `'use client'` は必要最小限のコンポーネントのみに付与
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
 - ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）
+- ホストするときは、アプリ専用のドメインを取得し（Cloudflare Registrar を基本とする）、Cloudflare を権威 DNS にして Workers の Custom Domains で紐付ける。`workers.dev` のまま公開しない（手順は `.claude/references/cli-setup.md` の「ドメインの取得と紐付け」）
 - デプロイは Cloudflare 側の GitHub 連携（Workers Builds）で行う。`main` への push で本番、`staging` への push でステージングにデプロイされる。本番へ手動で `deploy` コマンドを実行しない（手順は `.claude/references/cli-setup.md`）
 - D1 のスキーマ変更は必ずマイグレーション経由（Drizzle で SQL を生成し `wrangler d1 migrations apply` で適用。`migrations/` を git 管理する）
 - D1 には RLS がないため、ユーザー所有テーブルへのアクセスは必ずサーバー側のデータアクセス層を通し、`user_id` で絞り込む。クライアントから DB に直接触らせない

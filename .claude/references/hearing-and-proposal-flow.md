@@ -36,6 +36,7 @@ Step 1 で得たプロジェクト概要をもとに、エージェントが以�
 - メール: 
 - 決済: 
 - その他の主要ライブラリ
+- ドメイン: アプリ名に合った取得候補を 2〜3 個（例：`{app-name}.com`）
 - 選定理由を1行ずつ添える
 
 #### デフォルトの選定
@@ -43,7 +44,7 @@ Step 1 で得たプロジェクト概要をもとに、エージェントが以�
 ユーザーが別途指定した場合、またはサービス要件から明確に不適切な場合のみ変更する。
 
 - フレームワーク: Next.js
-- ホスティング: Cloudflare Workers（OpenNext アダプター `@opennextjs/cloudflare`）。デプロイは Cloudflare 側の GitHub 連携（Workers Builds）
+- ホスティング: Cloudflare Workers（OpenNext アダプター `@opennextjs/cloudflare`）。アプリ専用のドメインを取得して（Cloudflare Registrar を基本とする）Cloudflare を権威 DNS にし、Custom Domains で紐付ける。デプロイは Cloudflare 側の GitHub 連携（Workers Builds）
 - DB: Cloudflare D1（ORM は Drizzle）。ファイル保存が必要なら Cloudflare R2
 - 認証: Better Auth（D1 に保存）
 - メール: 送信は Cloudflare Email Service、受信は Cloudflare Email Routing で `customer.support.all@gmail.com` に転送（詳細は `.claude/references/mail.md`）
