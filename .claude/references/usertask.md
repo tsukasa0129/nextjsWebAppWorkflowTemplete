@@ -3,19 +3,24 @@
 以下のサービスはユーザー環境に MCP が設定済みのため、エージェントが直接操作できる。
 これらの操作を `docs/user-tasks/` に手動タスクとして記録してはならない。
 
-### Supabase（MCP 設定済み）
+### Cloudflare（MCP・API トークン設定済み）
 
-エージェントが MCP ツール経由で実行可能な操作:
+エージェントが MCP ツール（`mcp__Cloudflare_Developer_Platform__*`）・`wrangler` CLI・Cloudflare API 経由で実行可能な操作:
 
-- プロジェクトの作成・一覧取得・詳細取得
-- データベーステーブルの一覧取得
-- マイグレーションの適用（SQL 実行）
-- Edge Functions のデプロイ
-- プロジェクト URL・API キーの取得
-- ログ取得・アドバイザー確認
+- D1 データベースの作成・一覧取得・クエリ実行・マイグレーション適用（`wrangler d1 migrations apply`）
+- R2 バケット・KV ネームスペースの作成・管理
+- Workers のデプロイ・設定確認・シークレット登録（`wrangler secret put`）
+- Workers のカスタムドメイン（本番・`staging.domain.com`）の割り当て
+- Email Service（Email Sending）へのドメイン登録、Email Routing のルーティングルール作成
+- Cloudflare ドキュメントの検索
 
-従って、Supabase プロジェクト作成や API キー取得などはエージェントが直接行うこと。
+従って、D1 の作成やマイグレーション、Workers のデプロイ、メールの送信・受信設定などはエージェントが直接行うこと。
 ユーザーに手動操作を依頼する必要はない。
+
+ただし、以下はユーザーにしかできないためユーザータスクとして記録する:
+
+- ドメインの取得と、ネームサーバーを Cloudflare に向ける作業（レジストラ側の操作）
+- Email Routing の転送先 `customer.support.all@gmail.com` の確認（Cloudflare から届く確認メールのリンクを Gmail で押す）
 
 ### Stripe（MCP 設定済み）
 

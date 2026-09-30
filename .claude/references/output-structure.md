@@ -39,11 +39,15 @@
     ├── src/                       # アプリケーションソース（app / lib / data / components / context）
     │    ├── app/                  # App Router pages / API Routes
     │    ├── components/           # UIコンポーネント
-    │    ├── lib/                  # ユーティリティ・Supabase client
+    │    ├── lib/                  # ユーティリティ・D1(Drizzle) client・認証・メール送信
+    │    ├── db/                   # Drizzle スキーマ定義
+    │    ├── emails/               # メールテンプレート（React Email）
     │    ├── types/                # 型定義
     │    └── data/
-    ├── supabase/                  # Supabase設定・マイグレーション
-    └── public/                    # 静的アセット（画像・ロゴ）
+    ├── migrations/                # D1 マイグレーション（SQL）
+    ├── public/                    # 静的アセット（画像・ロゴ）
+    ├── wrangler.jsonc             # Cloudflare Workers 設定（D1・R2・メールのバインディング）
+    └── open-next.config.ts        # OpenNext（Cloudflare アダプター）設定
 
 ```
 

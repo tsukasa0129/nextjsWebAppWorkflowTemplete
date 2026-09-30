@@ -21,6 +21,7 @@ AIエージェントのルートとなる指示書
 - スタイリング: {xxx}
 - ホスティング: {xxx}
 - DB / 認証: {xxx}
+- メール: {xxx}
 - 決済: {xxx}
 ```
 
@@ -74,11 +75,15 @@ AIエージェントのルートとなる指示書
     ├── src/                       # アプリケーションソース（app / lib / data / components / context）
     │    ├── app/                  # App Router pages / API Routes
     │    ├── components/           # UIコンポーネント
-    │    ├── lib/                  # ユーティリティ・Supabase client
+    │    ├── lib/                  # ユーティリティ・D1(Drizzle) client・認証・メール送信
+    │    ├── db/                   # Drizzle スキーマ定義
+    │    ├── emails/               # メールテンプレート（React Email）
     │    ├── types/                # 型定義
     │    └── data/
-    ├── supabase/                  # Supabase設定・マイグレーション
-    └── public/                    # 静的アセット（画像・ロゴ）
+    ├── migrations/                # D1 マイグレーション（SQL）
+    ├── public/                    # 静的アセット（画像・ロゴ）
+    ├── wrangler.jsonc             # Cloudflare Workers 設定（D1・R2・メールのバインディング）
+    └── open-next.config.ts        # OpenNext（Cloudflare アダプター）設定
 
 
 
@@ -87,8 +92,11 @@ AIエージェントのルートとなる指示書
 - コンポーネントは関数コンポーネント + React hooks
 - `'use client'` は必要最小限のコンポーネントのみに付与
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
-- Supabase のスキーマ変更は必ずマイグレーション経由（supabaseとgithubを連携する）
-- ユーザー所有テーブルには必ずRLSを有効化してポリシーを設定する
+- ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）
+- D1 のスキーマ変更は必ずマイグレーション経由（Drizzle で SQL を生成し `wrangler d1 migrations apply` で適用。`migrations/` を git 管理する）
+- D1 には RLS がないため、ユーザー所有テーブルへのアクセスは必ずサーバー側のデータアクセス層を通し、`user_id` で絞り込む。クライアントから DB に直接触らせない
+- Cloudflare のリソース（D1・R2・メール）はバインディング経由で使い、`getCloudflareContext()` で取得する
+- メールの送信・受信は `.claude/references/mail.md` の手順に従う。お問い合わせの受信先は `customer.support.all@gmail.com`（Email Routing で転送）
 - 計算エンジンはクライアントサイドで実行（`'use client'` コンポーネント内で呼び出し）
 - エラーハンドリング: try-catch + ユーザーフレンドリーなエラーメッセージ
 - タスク完了したら承認なしに、PRを作成してマージする
@@ -119,13 +127,14 @@ AIエージェントのルートとなる指示書
 
 ## 動作テスト
 ### webアプリの場合
-- Vercel で `staging.domain.com` を `staging` ブランチに割り当てる。環境変数（`NEXT_PUBLIC_APP_URL` など）は Preview の Git Branch を `staging` に限定して設定する。
+- Cloudflare Workers の `staging` 環境（`wrangler.jsonc` の `env.staging`）を `staging` ブランチからデプロイし、Custom Domains で `staging.domain.com` を割り当てる。環境変数（`NEXT_PUBLIC_APP_URL` など）・D1・メールのバインディングは `env.staging` に分けて設定する。
 - アプリは `staging.domain.com` を、決済の戻り先・メールのリンクの起点として受け付ける。本番以外は robots.txt で検索に載せない。
-- 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、Supabase の Redirect URLs、OAuth のコールバック）は `staging.domain.com` に向ける。
+- 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、認証のコールバック URL、OAuth のコールバック）は `staging.domain.com` に向ける。
+- ステージングのメールは `allowed_destination_addresses` でテスト用アドレスにだけ送れるようにする。
 - `staging.domain.com` を、エージェントが使うテスト用の URL にする。
-  - Vercel のアクセス保護は、Protection Bypass for Automation のキーで通す（キーは環境変数 `VERCEL_AUTOMATION_BYPASS_SECRET` で渡し、チャットやコードに書かない）。
+  - `staging.domain.com` は Cloudflare Access で保護し、エージェントは Service Token で通す（キーは環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` で渡し、チャットやコードに書かない）。
   - エージェントの実行環境のネットワーク設定で `staging.domain.com` への接続を許可する。
-- ブラウザでの確認は Playwright の MCP サーバー（`mcp__playwright__*`）で行う。Bypass のキーは追加ヘッダー `x-vercel-protection-bypass` で渡す。
+- ブラウザでの確認は Playwright の MCP サーバー（`mcp__playwright__*`）で行う。Service Token は追加ヘッダー `CF-Access-Client-Id` / `CF-Access-Client-Secret` で渡す。
 - Stripe はテストモードのキーとテストカードだけを使う。ログインが必要なときは、資格情報を推測せずユーザーに尋ねる。
 
 

@@ -33,6 +33,7 @@ Step 1 で得たプロジェクト概要をもとに、エージェントが以�
 - スタイリング（Tailwind CSS / CSS Modules など）
 - ホスティング: 
 - DB / 認証: 
+- メール: 
 - 決済: 
 - その他の主要ライブラリ
 - 選定理由を1行ずつ添える
@@ -42,9 +43,13 @@ Step 1 で得たプロジェクト概要をもとに、エージェントが以�
 ユーザーが別途指定した場合、またはサービス要件から明確に不適切な場合のみ変更する。
 
 - フレームワーク: Next.js
-- ホスティング: Vercel
-- DB / 認証: Supabase Auth + Database + RLS
+- ホスティング: Cloudflare Workers（OpenNext アダプター `@opennextjs/cloudflare`）
+- DB: Cloudflare D1（ORM は Drizzle）。ファイル保存が必要なら Cloudflare R2
+- 認証: Better Auth（D1 に保存）
+- メール: 送信は Cloudflare Email Service、受信は Cloudflare Email Routing で `customer.support.all@gmail.com` に転送（詳細は `.claude/references/mail.md`）
 - 決済: Stripe。ただし決済機能が不要なサービスでは「なし」とする
+
+メール・ホスティング・DB は Cloudflare に統一する。Vercel・Supabase・Resend などは、ユーザーが明示した場合を除き提案しない。
 
 
 
@@ -78,7 +83,7 @@ DBを使う場合、機能要件と画面構成から主要テーブルを推論
 
 - テーブル一覧（テーブル名・概要・主要カラム）
 - テーブル間のリレーション
-- RLS（Row Level Security）の要否
+- 認可の方針（D1 には RLS がないため、ユーザー所有データはサーバー側のデータアクセス層で `user_id` による絞り込みを必ず行う）
 
 ### F. コーディング規約・環境変数
 
@@ -126,7 +131,7 @@ DBを使う場合、機能要件と画面構成から主要テーブルを推論
 |------------|------|------------|
 | users      | ...  | id, email, ... |
 
-RLS: {要 / 不要}
+認可: {ユーザー所有テーブルと、データアクセス層での絞り込み方針}
 
 ### F. コーディング規約・環境変数
 （規約と.env.localのキー一覧）

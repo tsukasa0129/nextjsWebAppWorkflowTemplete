@@ -34,7 +34,7 @@
 | ----- | ------- | ----------------------------------------- | --------------------------------- |
 | D-001 | 画面仕様    | `docs/screens/`                           | 画面一覧、各画面の目的、UI要素、状態、バリデーション、遷移    |
 | D-002 | 機能仕様    | `docs/functional-requirements/`           | 機能ごとの仕様、API、バリデーション、関連画面          |
-| D-003 | DB設計    | `docs/database/`                          | テーブル、リレーション、RLS、インデックス、業務制約       |
+| D-003 | DB設計    | `docs/database/`                          | テーブル、リレーション、認可ルール、インデックス、業務制約       |
 | D-004 | 開発フェーズ  | `docs/development-phases/`                | 実装順序、依存関係、完了条件、参照すべき機能仕様          |
 | D-005 | ユーザータスク | `docs/user-tasks/`                        | APIキー取得、外部サービス作成、Webhook設定、ログイン作業 |
 | D-006 | 環境変数    | `docs/env-variables.md`                   | 必要なキー、用途、取得元、設定タイミング              |
@@ -120,9 +120,9 @@
 
 ### D-003 DB設計
 
-- テーブル一覧、主要カラム、リレーション、RLSを設計する
+- テーブル一覧、主要カラム、リレーション、認可ルール（D1 は RLS なし。データアクセス層での絞り込み）を設計する
 - Mermaid ER図を含める
-- テーブル10以上の場合は `overview.md`、`tables.md`、`rls-policies.md`、`migrations.md`、`seed-data.md` に分割する
+- テーブル10以上の場合は `overview.md`、`tables.md`、`access-control.md`、`migrations.md`、`seed-data.md` に分割する
 
 ### D-004 開発フェーズ
 
