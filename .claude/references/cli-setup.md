@@ -87,7 +87,7 @@ npx wrangler r2 bucket create {project}-files
   "env": {
     "staging": {
       "d1_databases": [{ "binding": "DB", "database_name": "{project}-db-staging", "database_id": "yyyy", "migrations_dir": "migrations" }],
-      "send_email": [{ "name": "EMAIL", "allowed_destination_addresses": ["tukasa0129atmyhome@gmail.com"] }],
+      "send_email": [{ "name": "EMAIL", "allowed_destination_addresses": ["tsukasa240129@gmail.com"] }],
       "vars": { "NEXT_PUBLIC_APP_URL": "https://staging.example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" }
     }
   }
