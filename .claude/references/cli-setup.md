@@ -83,11 +83,13 @@ npx wrangler r2 bucket create {project}-files
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [{ "binding": "DB", "database_name": "{project}-db", "database_id": "xxxx", "migrations_dir": "migrations" }],
   "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["noreply@example.com", "support@example.com"] }],
+  "ai": { "binding": "AI" },
   "vars": { "NEXT_PUBLIC_APP_URL": "https://app.example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" },
   "env": {
     "staging": {
       "d1_databases": [{ "binding": "DB", "database_name": "{project}-db-staging", "database_id": "yyyy", "migrations_dir": "migrations" }],
       "send_email": [{ "name": "EMAIL", "allowed_destination_addresses": ["tsukasa240129@gmail.com"] }],
+      "ai": { "binding": "AI" },
       "vars": { "NEXT_PUBLIC_APP_URL": "https://staging.example.com", "EMAIL_FROM": "サービス名 <noreply@example.com>", "SUPPORT_EMAIL": "support@example.com" }
     }
   }
@@ -116,6 +118,39 @@ npx wrangler d1 migrations apply {project}-db --local   # ローカルで確認
 - 大きな変更の前は `npx wrangler d1 export {project}-db --remote --output backup.sql` でバックアップを取る（D1 の Time Travel でも保持期間内（Free は 7 日、Paid は 30 日）なら戻せる）。
 
 メールの送信・受信の設定は `.claude/references/mail.md` に従う。
+
+### LLM の組み込み（Workers AI）
+
+アプリに LLM を組み込むときは、Web アプリなら Cloudflare Workers AI のモデルを使う。`ai` バインディングで呼ぶので API キーは不要。OpenAI などの外部 API は、ユーザーが明示した場合を除き使わない。
+
+`ai` バインディングは `env` に引き継がれないため、`env.staging` にも書く（上の `wrangler.jsonc` の例を参照）。1 つの Worker に 1 つだけ定義できる。
+
+```bash
+npm install ai workers-ai-provider   # AI SDK を使う場合
+```
+
+```ts
+import "server-only";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { generateText } from "ai";
+import { createWorkersAI } from "workers-ai-provider";
+
+// モデル ID はこの 1 か所で管理する（Workers AI のモデル一覧から、用途・日本語対応・料金で選ぶ）
+export const LLM_MODEL = "@cf/<provider>/<model>";
+
+export async function generate(prompt: string) {
+  const { env } = getCloudflareContext();
+  const workersai = createWorkersAI({ binding: env.AI });
+  const { text } = await generateText({ model: workersai(LLM_MODEL), prompt });
+  return text;
+}
+// AI SDK を使わない場合は env.AI.run(LLM_MODEL, { messages: [...] }) で呼ぶ
+```
+
+- 呼び出しはサーバー側（Route Handler・Server Action）だけで行う。クライアントからモデルを直接呼ばない。
+- ユーザー単位の回数制限を入れる（Workers の Rate Limiting バインディングか D1 のカウンター）。
+- ログ・キャッシュ・利用量の確認が必要なら AI Gateway を経由させる（`env.AI.run(model, input, { gateway: { id: "<gateway-id>" } })`）。
+- `wrangler dev` でも実際の Workers AI を呼ぶため、ローカル開発でも料金がかかる。
 
 ## 環境変数ファイル作成
 
@@ -190,7 +225,7 @@ git commit -m "Initial project scaffold"
 
 ## デプロイ（Workers Builds）
 
-Web アプリのデプロイは、Cloudflare 側の GitHub 連携（Workers Builds）で行う。GitHub Actions やローカルからの `deploy` コマンドでは本番に出さない。
+Web アプリのデプロイは、Cloudflare 側の GitHub 連携（Workers Builds）で行う。リポジトリの接続は Cloudflare の Builds API で行う。GitHub Actions やローカルからの `deploy` コマンドでは本番に出さない。
 
 ### 構成
 
@@ -215,11 +250,68 @@ npx opennextjs-cloudflare deploy
 npx opennextjs-cloudflare deploy -- --env staging
 ```
 
-2. Cloudflare ダッシュボード → **Workers & Pages** → 各 Worker → **Settings** → **Builds** → **Connect** で GitHub リポジトリを接続し、上の表の設定を入れる。Cloudflare の GitHub App をリポジトリにインストールする操作は**ユーザータスク**にする。
+2. Cloudflare の Builds API でリポジトリを Workers Builds に接続する（エージェントが `curl` で実行する。ダッシュボードの **Connect** は使わない）。手順は下の「Builds API での接続」。
+   - 前提：Cloudflare の GitHub App が GitHub アカウントにインストールされ、対象リポジトリへのアクセスが許可されていること。これだけは**ユーザータスク**にする（アカウントごとに初回 1 回だけ）。
 3. 本番の `app.example.com` と `staging.example.com` を、各 Worker の **Settings** → **Domains & Routes** の Custom Domains で割り当てる。
 4. `main` と `staging` に push し、ビルドとデプロイが成功することを確認する。以後はブランチへの push（PR のマージ）でデプロイされる。
 
-ビルドの結果とログは、各 Worker の **Deployments** / **Builds** タブで確認する。
+ビルドの結果とログは、Builds API（`GET /builds/workers/{worker_tag}/builds`、`GET /builds/builds/{build_uuid}/logs`）で確認する。
+
+### Builds API での接続
+
+`CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID`（`npx wrangler whoami` で確認）を使う。ベース URL は `https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID`。
+
+| 手順 | 内容 | エンドポイント |
+|---|---|---|
+| 1 | GitHub のアカウント ID とリポジトリ ID を取得 | `GET https://api.github.com/users/{owner}`、`GET https://api.github.com/repos/{owner}/{repo}` の `id` |
+| 2 | リポジトリ接続を作る | `PUT /builds/repos/connections` |
+| 3 | Worker の tag（`external_script_id`）を取得。名前ではなく tag を使う | `GET /workers/scripts` |
+| 4 | ビルドトークンの UUID を取得 | `GET /builds/tokens` |
+| 5 | トリガーを作る（本番 Worker は `main`、ステージング Worker は `staging`） | `POST /builds/triggers` |
+| 6 | ビルド時の変数（`NEXT_PUBLIC_*` など）を登録 | `PATCH /builds/triggers/{trigger_uuid}/environment_variables` |
+| 7 | 最初のビルドを実行 | `POST /builds/triggers/{trigger_uuid}/builds` |
+
+```bash
+BASE="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+
+# 2. リポジトリ接続（repo_connection_uuid を控える）
+curl -sS "$BASE/builds/repos/connections" -X PUT \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+  --data '{"provider_type":"github","provider_account_id":"<GITHUB_USER_ID>","provider_account_name":"<owner>","repo_id":"<GITHUB_REPO_ID>","repo_name":"<repo>"}'
+
+# 3. Worker の tag
+curl -sS "$BASE/workers/scripts" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq '.result[] | {name: .id, tag: .tag}'
+
+# 4. ビルドトークン
+curl -sS "$BASE/builds/tokens" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq '.result[] | {build_token_uuid, build_token_name}'
+
+# 5. 本番トリガー（ステージングは external_script_id を {project}-staging の tag、branch_includes を ["staging"]、
+#    deploy_command を "npx wrangler d1 migrations apply {project}-db-staging --remote --env staging && npx opennextjs-cloudflare deploy -- --env staging" にしてもう 1 つ作る）
+curl -sS "$BASE/builds/triggers" -X POST \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+  --data '{
+    "external_script_id": "<WORKER_TAG>",
+    "repo_connection_uuid": "<REPO_CONNECTION_UUID>",
+    "build_token_uuid": "<BUILD_TOKEN_UUID>",
+    "trigger_name": "Deploy production",
+    "build_command": "npx opennextjs-cloudflare build",
+    "deploy_command": "npx wrangler d1 migrations apply {project}-db --remote && npx opennextjs-cloudflare deploy",
+    "root_directory": "app",
+    "branch_includes": ["main"],
+    "branch_excludes": [],
+    "path_includes": ["*"],
+    "path_excludes": []
+  }'
+
+# 7. 最初のビルド
+curl -sS "$BASE/builds/triggers/<TRIGGER_UUID>/builds" -X POST \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+  --data '{"branch":"main"}'
+```
+
+- 設定の変更は `PATCH /builds/triggers/{trigger_uuid}`、トリガーの一覧は `GET /builds/workers/{worker_tag}/triggers` で行う。
+- 「Resource not found」になるときは、Worker の名前を渡している。tag を渡す。
+- 取得した `repo_connection_uuid`・`trigger_uuid` は `docs/env-variables/env-variables.md` に記録する（秘密値ではない）。
 
 ### プレビュー URL の保護（Cloudflare Access）
 
