@@ -138,6 +138,7 @@ https://tsk-cc.com/
 - アプリは `staging.domain.com` を、決済の戻り先・メールのリンクの起点として受け付ける。本番以外は robots.txt で検索に載せない。
 - 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、認証のコールバック URL、OAuth のコールバック）は `staging.domain.com` に向ける。
 - 決済・アカウント登録（メールアドレスの登録・確認メール・マジックリンク）のテストで入力するメールアドレスは `tsukasa240129@gmail.com` を使う。
+- ステージング・ローカル・GTM プレビューのアナリティクスデータは、本番の GA4 レポートに入れない（`debug_mode` を付け、GA4 のデータフィルタ「デベロッパー トラフィック」で除外する。Pixel 系は本番ホストでだけ発火させる。手順は `.claude/references/gen-GA4-GTM-script.md` の「テスト環境のデータを本番レポートに入れない」）。
 - ステージングのメールは `allowed_destination_addresses` でテスト用アドレス（`tsukasa240129@gmail.com`）にだけ送れるようにする。
 - メールが届いたかは、Gmail の MCP（`mcp__Gmail__*`）で確認する。ユーザーに受信トレイを見てもらう必要はない。
   1. `mcp__Gmail__search_threads` で `to:tsukasa240129@gmail.com from:noreply@domain.com newer_than:1h in:anywhere` のように検索する（`in:anywhere` で迷惑メールに入った場合も見つける）

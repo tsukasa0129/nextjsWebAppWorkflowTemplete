@@ -30,6 +30,7 @@ Cloudflare・GA4・GTM の操作は、MCP サーバー **dev-mcp** からエー�
 ただし、以下はユーザータスクとして記録する:
 
 - ドメイン取得の承認：`cf_domain_quote` で出した価格をユーザーに見せ、明示的な承認を得てから `cf_domain_register` を実行する（課金され、返金できない）。他のレジストラで取得済みの場合は、ネームサーバーを Cloudflare に向ける作業
+- GA4 のデータフィルタ「デベロッパー トラフィック」（除外・有効）の作成。Admin API で作れないため管理画面で行う。GTM を公開する前に必要
 - Zero Trust の初回設定（チーム名とプランの選択）
 - Email Routing の転送先 `customer.support.all@gmail.com` の確認（Cloudflare から届く確認メールのリンクを Gmail で押す）
 - Cloudflare の GitHub App を GitHub アカウントにインストールし、リポジトリへのアクセスを許可する作業（Workers Builds の前提。アカウントごとに初回 1 回だけ）
