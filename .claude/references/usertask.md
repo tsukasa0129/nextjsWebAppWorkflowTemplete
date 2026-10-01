@@ -7,7 +7,7 @@
 
 エージェントが MCP ツール（`mcp__Cloudflare_Developer_Platform__*`）・`wrangler` CLI・Cloudflare API 経由で実行可能な操作:
 
-- D1 データベースの作成・一覧取得・クエリ実行・マイグレーション適用（`wrangler d1 migrations apply`）
+- D1 データベースの作成・一覧取得・調査のための読み取りクエリ（`SELECT` のみ）。変更は migration SQL を Git push して Workers Builds で適用する（管理画面や MCP から直接変更しない）
 - R2 バケット・KV ネームスペースの作成・管理
 - Workers の初回デプロイ・設定確認・シークレット登録（`wrangler secret put`）
 - Workers Builds のビルド設定（Build / Deploy command、ブランチ、ビルド時の変数）とビルドログの確認
