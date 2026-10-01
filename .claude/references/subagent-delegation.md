@@ -38,7 +38,7 @@
 | D-004 | 開発フェーズ  | `docs/development-phases/`                | 実装順序、依存関係、完了条件、参照すべき機能仕様          |
 | D-005 | ユーザータスク | `docs/user-tasks/`                        | APIキー取得、外部サービス作成、Webhook設定、ログイン作業 |
 | D-006 | 環境変数    | `docs/env-variables.md`                   | 必要なキー、用途、取得元、設定タイミング              |
-| D-007 | アナリティクス | `docs/functional-requirements/analytics/` | GA4/GTMイベント、カスタムディメンション、設定スクリプト   |
+| D-007 | アナリティクス | `docs/functional-requirements/analytics/` | GA4/GTMイベント、カスタムディメンション（設定は dev-mcp で行う）   |
 | D-008 | 技術補助調査  | 親エージェントへ報告                                | 技術選定の確認、ライブラリ候補、注意点               |
 
 
@@ -146,7 +146,7 @@
 
 - GA4イベント名、パラメータ、カスタムディメンションを設計する
 - GTMを使う場合はタグ・トリガー・変数の構成を記述する
-- 設定補助スクリプトが必要な場合は `scripts/` 配下に作成する
+- GA4・GTM の設定は MCP の dev-mcp（`mcp__dev-mcp__ga4_*` / `mcp__dev-mcp__gtm_*`）で行い、設定スクリプトは作らない（手順は `.claude/references/gen-GA4-GTM-script.md`）
 
 ## 統合チェックリスト
 

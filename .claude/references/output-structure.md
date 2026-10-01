@@ -19,7 +19,7 @@
 │
 ├── dev-kit/                             # 開発支援キット
 │    ├── images/                           # 画像アセット
-│    └── scripts/                          # GA4/GTMセットアップスクリプト（setup-ga4.mjs / setup-gtm.mjs）
+│    └── scripts/                          # 開発用の補助スクリプト（GA4/GTM の設定は dev-mcp で行うためスクリプト不要）
 │
 ├── mvp-kit/                             # MVP開発用キット
 │    ├── DevelopmentPhaseInstructions/     # フェーズごとの開発指示

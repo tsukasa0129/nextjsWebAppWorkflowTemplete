@@ -32,8 +32,8 @@ Cloudflare Email Service（Email Sending + Email Routing）
 
 ### 1-1. 送信（Email Sending）
 
-1. Cloudflare ダッシュボード → **Compute** → **Email Service** → **Email Sending** → **Onboard Domain** でドメインを選ぶ
-2. 次のレコードが自動で追加される
+1. dev-mcp の `cf_email_sending_add_domain` でドメインを登録する（一覧は `cf_email_sending_list_domains`）
+2. 次のレコードが追加される。`cf_email_sending_dns` で必要なレコードと状態を確認する
 
 | 種類 | 役割 | 場所 |
 |---|---|---|
@@ -44,11 +44,13 @@ Cloudflare Email Service（Email Sending + Email Routing）
 
 ### 1-2. 受信（Email Routing）
 
-1. **Email Service** → **Email Routing** を有効にする（ルートドメインの MX・SPF が自動で追加される）
-2. **Destination Addresses** に `customer.support.all@gmail.com` を追加する
+Email Routing は dev-mcp の `cf_request` で Cloudflare API を呼んで設定する。
+
+1. Email Routing を有効にする（`POST /zones/{zone_id}/email/routing/enable`。ルートドメインの MX・SPF が追加される）
+2. 転送先 `customer.support.all@gmail.com` を追加する（`POST /accounts/{account_id}/email/routing/addresses`）
    - Cloudflare から確認メールが届くので、Gmail 側で **Verify email address** を押す。**これはユーザータスク**（Gmail にログインできるのはユーザーだけ）
    - 確認が済むまで、この宛先を使うルーティングルールは無効のまま
-3. **Routing Rules** でルールを作る
+3. ルーティングルールを作る（`POST /zones/{zone_id}/email/routing/rules`。Catch-all は `PUT /zones/{zone_id}/email/routing/rules/catch_all`）
 
 | Email pattern | Action | Destination |
 |---|---|---|
@@ -210,5 +212,5 @@ const mask = (e: string) => { const [l, d] = e.split("@"); return d ? `${l.slice
 ## 8. 運用
 
 - **バウンス・苦情**：Email Service の Suppression リストで、以後その宛先には送らないようにする。ドメイン設定の **Drop suppressed recipients** を有効にすると、配信停止中の宛先を除いて残りに送る。
-- **送信量**：ダッシュボードの Email Sending の分析で、送信数・バウンス率・上限までの残りを確認する。
+- **送信量**：Email Sending の分析で、送信数・バウンス率・上限までの残りを確認する（dev-mcp の `cf_request` / `cf_get` で取得できる）。
 - **受信**：`customer.support.all@gmail.com` が確認済みのままか、ルーティングルールが Active かを定期的に確認する。
