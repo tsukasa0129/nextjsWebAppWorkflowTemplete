@@ -97,7 +97,7 @@ Workers では API キーを使わず、`wrangler.jsonc` の `send_email` バイ
 | `SUPPORT_EMAIL` | 窓口アドレス（`support@example.com`）。受信は `customer.support.all@gmail.com` に転送される | `vars` |
 
 - Workers 以外（GitHub Actions のスクリプトなど）から送る場合だけ、REST API（`POST /accounts/{account_id}/email/sending/send`）を **Email Sending: Edit** 権限だけの API トークンで呼ぶ。トークンは `wrangler secret put` か CI のシークレットに入れ、チャットやリポジトリには書かない。
-- ステージングは `env.staging` に別の `send_email` バインディングを定義し、`allowed_destination_addresses` でテスト用アドレスだけに送れるようにする。
+- ステージングは `env.staging` に別の `send_email` バインディングを定義し、`allowed_destination_addresses` でテスト用アドレス（`tsukasa240129@gmail.com`）だけに送れるようにする。
 - ローカル開発（`wrangler dev`）では送信がシミュレートされ、内容はコンソールとローカルファイルに出る。実際に送る確認が必要なときだけ `"remote": true` にする。
 - 環境変数の一覧（例：`docs/env-variables/env-variables.md`）に、用途・取得元・現在の値（秘密値以外）を残す。
 
@@ -196,8 +196,8 @@ const mask = (e: string) => { const [l, d] = e.split("@"); return d ? `${l.slice
 
 - [ ] Email Sending でドメインが Verified になっている
 - [ ] `dig` で MX・SPF・DKIM・DMARC のレコードが見える
-- [ ] すべての種類のメールをテスト用のアドレスに送り、**受信トレイに届く**（迷惑メールに入らない）
-- [ ] Gmail の「メッセージのソースを表示」で SPF・DKIM・DMARC がすべて PASS になっている
+- [ ] すべての種類のメールをテスト用のアドレス `tsukasa240129@gmail.com` に送り、**受信トレイに届く**（迷惑メールに入らない）。届いたかは Gmail の MCP（`mcp__Gmail__search_threads` / `mcp__Gmail__get_message`）でエージェントが確認する
+- [ ] SPF・DKIM・DMARC がすべて PASS になっている（`mcp__Gmail__get_message` の `RAW` で `Authentication-Results` ヘッダーを見る）
 - [ ] 外部のアドレスから `support@example.com` に送ると、`customer.support.all@gmail.com` に届く（送信元は転送先と別のアカウントにする）
 - [ ] メール内のリンクが正しいドメイン（本番・ステージング）を開く
 - [ ] 同じ操作を 2 回しても、メールは 1 通だけ届く

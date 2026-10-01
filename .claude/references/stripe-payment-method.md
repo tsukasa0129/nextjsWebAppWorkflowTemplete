@@ -135,7 +135,7 @@ Express: checkout.confirm({ expressCheckoutConfirmEvent })
 - 月額サブスクを作成: STRIPE_PRICE_MONTHLY, trial_period_days: 3
   （冪等キー checkout_sub_{session_id}、既存のサブスクがあれば再利用）
 - DB: users.plan = 'premium'、stripe_subscriptions を作成
-- 決済完了メール（トライアル終了日つき）を送信
+- 決済完了メール（トライアル終了日つき）を送信（テストでは `tsukasa240129@gmail.com` で決済し、届いたかを Gmail の MCP で確認する）
 
 #### ⑤ 結果によって分岐
 premium → 詳細結果をサーバー側で描画して表示

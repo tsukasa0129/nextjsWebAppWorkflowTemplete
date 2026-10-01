@@ -133,7 +133,13 @@ https://tsk-cc.com/
 - Cloudflare Workers の `staging` 環境（`wrangler.jsonc` の `env.staging`）を、Workers Builds で `staging` ブランチから自動デプロイし、Custom Domains で `staging.domain.com` を割り当てる。環境変数（`NEXT_PUBLIC_APP_URL` など）・D1・メールのバインディングは `env.staging` に分けて設定する。
 - アプリは `staging.domain.com` を、決済の戻り先・メールのリンクの起点として受け付ける。本番以外は robots.txt で検索に載せない。
 - 固定 URL が必要な外部サービス（Stripe テストモードの Webhook、認証のコールバック URL、OAuth のコールバック）は `staging.domain.com` に向ける。
-- ステージングのメールは `allowed_destination_addresses` でテスト用アドレスにだけ送れるようにする。
+- 決済・アカウント登録（メールアドレスの登録・確認メール・マジックリンク）のテストで入力するメールアドレスは `tsukasa240129@gmail.com` を使う。
+- ステージングのメールは `allowed_destination_addresses` でテスト用アドレス（`tsukasa240129@gmail.com`）にだけ送れるようにする。
+- メールが届いたかは、Gmail の MCP（`mcp__Gmail__*`）で確認する。ユーザーに受信トレイを見てもらう必要はない。
+  1. `mcp__Gmail__search_threads` で `to:tsukasa240129@gmail.com from:noreply@domain.com newer_than:1h in:anywhere` のように検索する（`in:anywhere` で迷惑メールに入った場合も見つける）
+  2. `mcp__Gmail__get_message` の `PLAIN_TEXT` で本文を読み、件名・本文・リンク先のドメイン（`staging.domain.com` / `app.domain.com`）を確認する
+  3. 迷惑メールに入っていないか（`label_ids` に `SPAM` がないか）、`RAW` のヘッダーの `Authentication-Results` で SPF・DKIM・DMARC が `pass` かを確認する
+  4. マジックリンク・確認リンクが必要なテストでは、本文から取り出したリンクを Playwright で開いて続ける
 - `staging.domain.com` を、エージェントが使うテスト用の URL にする。`staging` に push したあとは、Worker の Builds タブでデプロイ完了を確認してからテストする。
   - `staging.domain.com` を含むプレビュー用の URL は、すべて Cloudflare Access で管理する（詳細は下の「プレビュー URL のアクセス管理」）。
   - エージェントの実行環境のネットワーク設定で `staging.domain.com` への接続を許可する。
