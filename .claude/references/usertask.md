@@ -10,7 +10,8 @@
 - D1 データベースの作成・一覧取得・調査のための読み取りクエリ（`SELECT` のみ）。変更は migration SQL を Git push して Workers Builds で適用する（管理画面や MCP から直接変更しない）
 - R2 バケット・KV ネームスペースの作成・管理
 - Workers の初回デプロイ・設定確認・シークレット登録（`wrangler secret put`）
-- Workers Builds のビルド設定（Build / Deploy command、ブランチ、ビルド時の変数）とビルドログの確認
+- Workers Builds へのリポジトリ接続とビルド設定（Builds API で接続・トリガー作成・ビルド時の変数登録）、ビルドの実行とログの確認
+- Workers AI のバインディング設定とモデルの選定
 - 取得したドメインの Cloudflare 権威 DNS への反映確認と、Workers の Custom Domains（本番の `app.domain.com`・`staging.domain.com`）への紐付け
 - Cloudflare Access によるプレビュー URL（`staging.domain.com` など）の保護、ポリシーと Service Token の作成
 - Email Service（Email Sending）へのドメイン登録、Email Routing のルーティングルール作成
@@ -23,7 +24,7 @@
 
 - アプリ専用ドメインの取得と支払い（Cloudflare Registrar を基本とする）。他のレジストラで取得した場合は、ネームサーバーを Cloudflare に向ける作業（レジストラ側の操作）
 - Zero Trust の初回設定（チーム名とプランの選択）
-- Workers Builds のために、Cloudflare の GitHub App を GitHub アカウントにインストールし、リポジトリへのアクセスを許可する作業
+- Cloudflare の GitHub App を GitHub アカウントにインストールし、リポジトリへのアクセスを許可する作業（Builds API を使う前提。アカウントごとに初回 1 回だけ）
 - Email Routing の転送先 `customer.support.all@gmail.com` の確認（Cloudflare から届く確認メールのリンクを Gmail で押す）
 
 ### Stripe（MCP 設定済み）
