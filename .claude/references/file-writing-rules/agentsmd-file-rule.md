@@ -110,7 +110,7 @@ https://tsk-cc.com/
 
 ## デザイン規約
 - Tailwind CSSの使用
-- toC向けのweb2appやネイティブアプリでのuiデザインは`Appllama`skillを使用
+- toC向けのweb2appやネイティブアプリでのuiデザインは`Appllama`skillを使用（"npx skills@latest add appllama/appllama-skills -a claude-code -y"でインストールできます。）https://github.com/Appllama/appllama-skills
 - 自社用の効率用のサービスor toB向けのサービスには
 
 
