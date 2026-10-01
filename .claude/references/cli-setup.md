@@ -96,14 +96,24 @@ npx wrangler r2 bucket create {project}-files
 
 バインディングの型は `npx wrangler types` で生成する。
 
-マイグレーションは Drizzle で SQL を生成し、wrangler で適用する。
+### DB の変更はすべて migration SQL → Git push
+
+D1 の変更（テーブル・カラム・インデックスの追加や変更、初期データ・マスタデータの投入、データの修正）は、すべて `migrations/` の SQL ファイルにして Git に push する。Cloudflare の管理画面（D1 の Console・テーブル編集）から直接いじらない。
+
+1. スキーマを変えるときは Drizzle のスキーマを書き換えて SQL を生成する。データの投入・修正は `npx wrangler d1 migrations create {project}-db <名前>` で空の SQL を作って書く。
 
 ```bash
 npx drizzle-kit generate
-npx wrangler d1 migrations apply {project}-db --local
-npx wrangler d1 migrations apply {project}-db --remote
-npx wrangler d1 migrations apply {project}-db-staging --remote --env staging
+npx wrangler d1 migrations apply {project}-db --local   # ローカルで確認
 ```
+
+2. ブランチにコミットして PR を作る。`staging` に push すると Workers Builds がステージングの D1 に適用し、`main` にマージすると本番の D1 に適用する（Deploy command の前に `wrangler d1 migrations apply --remote` を付けている。後述）。
+3. 本番・ステージングに `--remote` で手で適用しない（初回のセットアップで Workers Builds をつなぐ前だけ例外）。
+
+- 適用済みの SQL ファイルは書き換えない・消さない。直したいときは新しい SQL を追加する。
+- 本番の D1 を直接書き換える必要が出たとき（障害対応など）も、まず SQL ファイルにして PR を通す。
+- 調査のための読み取り（`SELECT`）は、MCP（`mcp__Cloudflare_Developer_Platform__d1_database_query`）や `wrangler d1 execute --command` で行ってよい。`INSERT`・`UPDATE`・`DELETE`・`CREATE`・`ALTER`・`DROP` はこれらで実行しない。
+- 大きな変更の前は `npx wrangler d1 export {project}-db --remote --output backup.sql` でバックアップを取る（D1 の Time Travel でも保持期間内（Free は 7 日、Paid は 30 日）なら戻せる）。
 
 メールの送信・受信の設定は `.claude/references/mail.md` に従う。
 
