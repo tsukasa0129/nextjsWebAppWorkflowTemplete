@@ -63,18 +63,15 @@ npm install {提案で選定したライブラリ}
 
 ## Cloudflare リソースのセットアップ
 
-`CLOUDFLARE_API_TOKEN` が設定済みなので、エージェントが直接実行する。
+Cloudflare の操作は MCP サーバー **dev-mcp**（`mcp__dev-mcp__cf_*`）からエージェントが直接行う。ダッシュボードでの手作業や `curl` は使わない。dev-mcp にない操作（R2 の作成、ビルド、ローカル開発）だけ `wrangler` CLI を使う。
 
-```bash
-npx wrangler whoami
-# D1（本番・ステージング）
-npx wrangler d1 create {project}-db
-npx wrangler d1 create {project}-db-staging
-# R2（ファイル保存が必要な場合のみ）
-npx wrangler r2 bucket create {project}-files
-```
+| 作るもの | dev-mcp のツール |
+|---|---|
+| トークンの確認 | `cf_verify_token` / `cf_list_accounts` |
+| D1（本番 `{project}-db`・ステージング `{project}-db-staging`） | `cf_d1_create_database` |
+| R2（ファイル保存が必要な場合のみ） | `npx wrangler r2 bucket create {project}-files` |
 
-出力された `database_id` を `wrangler.jsonc` の `d1_databases` に書く。ステージングは `env.staging` に分けて定義する。
+作成した D1 の `database_id` を `wrangler.jsonc` の `d1_databases` に書く。ステージングは `env.staging` に分けて定義する。
 
 ```jsonc
 {
@@ -114,7 +111,7 @@ npx wrangler d1 migrations apply {project}-db --local   # ローカルで確認
 
 - 適用済みの SQL ファイルは書き換えない・消さない。直したいときは新しい SQL を追加する。
 - 本番の D1 を直接書き換える必要が出たとき（障害対応など）も、まず SQL ファイルにして PR を通す。
-- 調査のための読み取り（`SELECT`）は、MCP（`mcp__Cloudflare_Developer_Platform__d1_database_query`）や `wrangler d1 execute --command` で行ってよい。`INSERT`・`UPDATE`・`DELETE`・`CREATE`・`ALTER`・`DROP` はこれらで実行しない。
+- 調査のための読み取り（`SELECT`）は、dev-mcp の `cf_d1_query` で行ってよい。適用済みのマイグレーションは `cf_d1_migrations_list` で確認する。`INSERT`・`UPDATE`・`DELETE`・`CREATE`・`ALTER`・`DROP` はこれらで実行しない。
 - 大きな変更の前は `npx wrangler d1 export {project}-db --remote --output backup.sql` でバックアップを取る（D1 の Time Travel でも保持期間内（Free は 7 日、Paid は 30 日）なら戻せる）。
 
 メールの送信・受信の設定は `.claude/references/mail.md` に従う。
@@ -154,7 +151,7 @@ export async function generate(prompt: string) {
 
 ## 環境変数ファイル作成
 
-ローカル開発用の秘密値は `.dev.vars` にプレースホルダー値で生成する（本番・ステージングは `wrangler secret put` で登録する）。公開してよい値は `wrangler.jsonc` の `vars` に書く。
+ローカル開発用の秘密値は `.dev.vars` にプレースホルダー値で生成する（本番・ステージングは dev-mcp の `cf_worker_put_secret` で登録する）。公開してよい値は `wrangler.jsonc` の `vars` に書く。
 
 ```bash
 # === 認証 ===
@@ -192,10 +189,10 @@ git commit -m "Initial project scaffold"
 
 ホストするときは、アプリ専用のドメインを取得し、Cloudflare を権威 DNS にして Worker に紐付ける。`workers.dev` のまま公開しない。**アプリの本番は `app.` のサブドメイン（`app.{app-name}.com`）でホストする。**
 
-1. アプリ名に合ったドメインを取得する（例：`{app-name}.com`）。**Cloudflare Registrar で取得する**のを基本にする（Cloudflare が最初から権威 DNS になり、ネームサーバーの変更が要らない）。取得と支払いは**ユーザータスク**にする。
+1. アプリ名に合ったドメインを取得する（例：`{app-name}.com`）。**Cloudflare Registrar で取得する**のを基本にする（Cloudflare が最初から権威 DNS になり、ネームサーバーの変更が要らない）。dev-mcp の `cf_domain_search` → `cf_domain_quote` で候補と価格を出し、**ユーザーに価格を見せて明示的な承認を得てから** `cf_domain_register` で取得する（課金され、返金できない）。状態は `cf_domain_registration_status` で確認する。
    - 他のレジストラで取得済みの場合は、Cloudflare にドメイン（ゾーン）を追加し、レジストラ側でネームサーバーを Cloudflare が指定する 2 つに変える（**ユーザータスク**）。ゾーンが **Active** になるまで待つ。
-2. `dig NS {app-name}.com` で、ネームサーバーが Cloudflare（`*.ns.cloudflare.com`）になっていることを確認する。
-3. 各 Worker の **Settings** → **Domains & Routes** → **Custom Domains** に割り当てる（エージェントが行う）。`wrangler.jsonc` の `routes` に書いてもよい。
+2. dev-mcp の `cf_get_zone` でゾーンが Active か、`dig NS {app-name}.com` でネームサーバーが Cloudflare（`*.ns.cloudflare.com`）になっていることを確認する。DNS レコードは `cf_list_dns_records` で確認する。
+3. 各 Worker の Custom Domains に割り当てる（エージェントが行う）。`wrangler.jsonc` の `routes` に書き、デプロイ時に割り当てる。割り当て結果は dev-mcp の `cf_worker_list_domains` で確認する。
 
 | ホスト名 | Worker | 用途 |
 |---|---|---|
@@ -250,67 +247,38 @@ npx opennextjs-cloudflare deploy
 npx opennextjs-cloudflare deploy -- --env staging
 ```
 
-2. Cloudflare の Builds API でリポジトリを Workers Builds に接続する（エージェントが `curl` で実行する。ダッシュボードの **Connect** は使わない）。手順は下の「Builds API での接続」。
+2. Cloudflare の Builds API でリポジトリを Workers Builds に接続する（エージェントが dev-mcp の `cf_builds_*` で実行する。ダッシュボードの **Connect** は使わない）。手順は下の「Builds API での接続（dev-mcp）」。
    - 前提：Cloudflare の GitHub App が GitHub アカウントにインストールされ、対象リポジトリへのアクセスが許可されていること。これだけは**ユーザータスク**にする（アカウントごとに初回 1 回だけ）。
-3. 本番の `app.example.com` と `staging.example.com` を、各 Worker の **Settings** → **Domains & Routes** の Custom Domains で割り当てる。
+3. 本番の `app.example.com` と `staging.example.com` を、各 Worker の Custom Domains に割り当てる（`wrangler.jsonc` の `routes` でデプロイ時に割り当てる。確認は dev-mcp の `cf_worker_list_domains`）。
 4. `main` と `staging` に push し、ビルドとデプロイが成功することを確認する。以後はブランチへの push（PR のマージ）でデプロイされる。
 
-ビルドの結果とログは、Builds API（`GET /builds/workers/{worker_tag}/builds`、`GET /builds/builds/{build_uuid}/logs`）で確認する。
+ビルドの結果とログは、dev-mcp の `cf_builds_list_builds` / `cf_builds_get_build` で確認する。
 
-### Builds API での接続
+### Builds API での接続（dev-mcp）
 
-`CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID`（`npx wrangler whoami` で確認）を使う。ベース URL は `https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID`。
+Workers Builds の Builds API は、dev-mcp の `mcp__dev-mcp__cf_builds_*` から呼ぶ（`curl` は使わない）。アカウント ID はトークンから自動で決まり、Worker は名前でも tag でも渡せる。
 
-| 手順 | 内容 | エンドポイント |
+| 手順 | 内容 | dev-mcp のツール |
 |---|---|---|
-| 1 | GitHub のアカウント ID とリポジトリ ID を取得 | `GET https://api.github.com/users/{owner}`、`GET https://api.github.com/repos/{owner}/{repo}` の `id` |
-| 2 | リポジトリ接続を作る | `PUT /builds/repos/connections` |
-| 3 | Worker の tag（`external_script_id`）を取得。名前ではなく tag を使う | `GET /workers/scripts` |
-| 4 | ビルドトークンの UUID を取得 | `GET /builds/tokens` |
-| 5 | トリガーを作る（本番 Worker は `main`、ステージング Worker は `staging`） | `POST /builds/triggers` |
-| 6 | ビルド時の変数（`NEXT_PUBLIC_*` など）を登録 | `PATCH /builds/triggers/{trigger_uuid}/environment_variables` |
-| 7 | 最初のビルドを実行 | `POST /builds/triggers/{trigger_uuid}/builds` |
+| 1 | GitHub のアカウント ID とリポジトリ ID を取得 | GitHub API（`/users/{owner}`・`/repos/{owner}/{repo}` の `id`） |
+| 2 | リポジトリ接続を作る（`repo_connection_uuid` を控える） | `cf_builds_upsert_repo_connection` |
+| 3 | ビルドトークンの UUID を取得 | `cf_builds_list_tokens` |
+| 4 | トリガーを作る（本番 Worker は `main`、ステージング Worker は `staging`） | `cf_builds_create_trigger` |
+| 5 | ビルド時の変数（`NEXT_PUBLIC_*` など）を登録・設定を変更 | `cf_builds_update_trigger` |
+| 6 | 最初のビルドを実行 | `cf_builds_run` |
+| 7 | ビルドの結果とログを確認 | `cf_builds_list_builds` / `cf_builds_get_build` |
 
-```bash
-BASE="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+トリガーの設定値：
 
-# 2. リポジトリ接続（repo_connection_uuid を控える）
-curl -sS "$BASE/builds/repos/connections" -X PUT \
-  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
-  --data '{"provider_type":"github","provider_account_id":"<GITHUB_USER_ID>","provider_account_name":"<owner>","repo_id":"<GITHUB_REPO_ID>","repo_name":"<repo>"}'
+| 項目 | 本番（`{project}`） | ステージング（`{project}-staging`） |
+|---|---|---|
+| ブランチ | `main` | `staging` |
+| Build command | `npx opennextjs-cloudflare build` | `npx opennextjs-cloudflare build` |
+| Deploy command | `npx wrangler d1 migrations apply {project}-db --remote && npx opennextjs-cloudflare deploy` | `npx wrangler d1 migrations apply {project}-db-staging --remote --env staging && npx opennextjs-cloudflare deploy -- --env staging` |
+| Root directory | `app` | `app` |
 
-# 3. Worker の tag
-curl -sS "$BASE/workers/scripts" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq '.result[] | {name: .id, tag: .tag}'
-
-# 4. ビルドトークン
-curl -sS "$BASE/builds/tokens" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq '.result[] | {build_token_uuid, build_token_name}'
-
-# 5. 本番トリガー（ステージングは external_script_id を {project}-staging の tag、branch_includes を ["staging"]、
-#    deploy_command を "npx wrangler d1 migrations apply {project}-db-staging --remote --env staging && npx opennextjs-cloudflare deploy -- --env staging" にしてもう 1 つ作る）
-curl -sS "$BASE/builds/triggers" -X POST \
-  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
-  --data '{
-    "external_script_id": "<WORKER_TAG>",
-    "repo_connection_uuid": "<REPO_CONNECTION_UUID>",
-    "build_token_uuid": "<BUILD_TOKEN_UUID>",
-    "trigger_name": "Deploy production",
-    "build_command": "npx opennextjs-cloudflare build",
-    "deploy_command": "npx wrangler d1 migrations apply {project}-db --remote && npx opennextjs-cloudflare deploy",
-    "root_directory": "app",
-    "branch_includes": ["main"],
-    "branch_excludes": [],
-    "path_includes": ["*"],
-    "path_excludes": []
-  }'
-
-# 7. 最初のビルド
-curl -sS "$BASE/builds/triggers/<TRIGGER_UUID>/builds" -X POST \
-  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
-  --data '{"branch":"main"}'
-```
-
-- 設定の変更は `PATCH /builds/triggers/{trigger_uuid}`、トリガーの一覧は `GET /builds/workers/{worker_tag}/triggers` で行う。
-- 「Resource not found」になるときは、Worker の名前を渡している。tag を渡す。
+- トリガーの一覧は `cf_builds_list_triggers`、ビルドの中止は `cf_builds_cancel`、削除は `cf_builds_delete_trigger`。
+- 専用ツールにない Builds API は `cf_request` で呼ぶ。
 - 取得した `repo_connection_uuid`・`trigger_uuid` は `docs/env-variables/env-variables.md` に記録する（秘密値ではない）。
 
 ### プレビュー URL の保護（Cloudflare Access）
@@ -318,10 +286,10 @@ curl -sS "$BASE/builds/triggers/<TRIGGER_UUID>/builds" -X POST \
 `staging.example.com` などのプレビュー用の URL は Cloudflare Access で管理する（ルールは AGENTS.md の「プレビュー URL のアクセス管理」）。
 
 1. Zero Trust が未設定なら有効にする（チーム名とプランの選択。**ユーザータスク**）。
-2. `{project}-staging` の **Settings** → **Domains & Routes** → **Enable Cloudflare Access** で、Preview と Production の両方を保護する。本番の `{project}` は Preview URLs だけを保護する。
-3. **Zero Trust** → **Access controls** → **Service credentials** → **Service Tokens** で `{project}-agent` を作り、Client ID と Client Secret を環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入れる（Secret は作成時にしか表示されない）。
-4. ステージングのポリシーに、開発者のメールアドレスの Allow と、`{project}-agent` の Service Auth を追加する。
-5. Stripe の Webhook など外部から呼ばれるパス（`staging.example.com/api/webhooks/*`）に、Bypass ポリシーの Access アプリケーションを作る。
+2. dev-mcp の `cf_access_create_app` で、`staging.example.com`・ステージング Worker の `workers.dev`・Preview URLs を保護する Access アプリケーションを作る。本番の `{project}` は Preview URLs だけを保護する。既存のものは `cf_access_list_apps` / `cf_access_update_app` で確認・更新する。
+3. dev-mcp の `cf_access_create_service_token` で `{project}-agent` を作り、Client ID と Client Secret を環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入れる（Secret は作成時にしか表示されない）。
+4. ステージングのポリシーに、開発者のメールアドレスの Allow と、`{project}-agent` の Service Auth を追加する（`cf_access_update_app`、ポリシーの確認は `cf_access_list_policies`）。期限が近づいたら `cf_access_refresh_service_token` / `cf_access_rotate_service_token` で更新する。
+5. Stripe の Webhook など外部から呼ばれるパス（`staging.example.com/api/webhooks/*`）に、Bypass ポリシーの Access アプリケーションを `cf_access_create_app` で作る。
 6. 確認：ヘッダーなしの `curl -I https://staging.example.com` がログイン画面にリダイレクトされ、Service Token のヘッダーを付けると 200 が返る。
 
 ```bash
@@ -334,6 +302,7 @@ curl -I https://staging.example.com \
 
 - フレームワーク初期化時に `CLAUDE.md` や `docs/` が上書きされないようにする
 - パッケージインストールでエラーが出た場合は、エラー内容をユーザーに報告し、必要なら手動対応を促す
+- Cloudflare・GA4・GTM の操作は dev-mcp を優先する。`wrangler` はビルド・ローカル開発・dev-mcp にない操作だけに使う
 - `wrangler` は devDependencies に入れて `npx wrangler` で使う。認証は `CLOUDFLARE_API_TOKEN` で行うため、`wrangler login` は不要
 - Stripe CLI のインストール・ログインはユーザータスクとして扱う
-- ドメインの取得（支払い）と、他のレジストラの場合のネームサーバー変更はユーザータスクとして扱う。Custom Domains への紐付けはエージェントが行う
+- ドメイン取得の承認（価格の確認）と、他のレジストラの場合のネームサーバー変更はユーザータスクとして扱う。取得の実行と Custom Domains への紐付けはエージェントが dev-mcp で行う

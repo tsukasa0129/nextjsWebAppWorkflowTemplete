@@ -35,7 +35,8 @@
     "allow": [
       "Bash(curl https://api.cloudflare.com/client/v4/*)",
       "Bash(curl -sS https://api.cloudflare.com/client/v4/*)",
-      "mcp__Cloudflare_Developer_Platform"
+      "mcp__Cloudflare_Developer_Platform",
+      "mcp__dev-mcp"
     ]
   },
   "env": {
@@ -44,5 +45,5 @@
 }
 ```
 
-- `permissions.allow`：Cloudflare API への `curl` と Cloudflare の MCP（`mcp__Cloudflare_Developer_Platform`）を、確認なしで実行できるようにする。
+- `permissions.allow`：Cloudflare API への `curl`、Cloudflare の MCP（`mcp__Cloudflare_Developer_Platform`）、Cloudflare・GA4・GTM を操作する MCP（`mcp__dev-mcp`）を、確認なしで実行できるようにする。
 - `env.CLOUDFLARE_ZONE_ID`：Cloudflare のゾーン ID。DNS・Custom Domains・Email Routing・Access などゾーン単位の API で使う。

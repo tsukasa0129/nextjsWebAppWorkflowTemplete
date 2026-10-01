@@ -52,8 +52,8 @@
  - アナリティクスの設計書生成の形式の指示書：`.claude/references/file-writing-rules/ga4-event-and-demention-structure-rules.md`
  - アナリティクスの設計書生成時のベストプラクティス：`/.claude/references/ga4-event-and-demention-best-practice.md`
 
-8. アナリティクス解析要件に従って、GA4とGTMの実装スクリプトを作成（※必要であれば）
- - スクリプト生成の指示書：`.claude/references/gen-GA4-GTM-script.md`
+8. アナリティクス解析要件に従って、GA4とGTMを設定（※必要であれば）。設定は MCP の dev-mcp から直接行う
+ - 設定手順の指示書：`.claude/references/gen-GA4-GTM-script.md`
 
 9. `/docs`と`/app`配下の詳細なディレクトリ構造の説明資料を作成
  - ディレクトリ構造説明資料作成の指示書：`.claude/references/file-writing-rules/directory-rules.md`
