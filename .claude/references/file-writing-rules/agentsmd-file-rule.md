@@ -91,6 +91,7 @@ https://tsk-cc.com/
 
 ## コーディング規約
 - コンポーネントは関数コンポーネント + React hooks
+- アプリ内でLLM組み込む時はwebアプリならcloud worker AIの中のモデル利用するようする。ネイティブアプリの場合は端末内のローカルLLMが使えるかも要相談しながら進める。
 - `'use client'` は必要最小限のコンポーネントのみに付与
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
 - ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）
