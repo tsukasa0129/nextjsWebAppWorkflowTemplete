@@ -289,10 +289,17 @@ Workers Builds の Builds API は、dev-mcp の `mcp__dev-mcp__cf_builds_*` か�
 
 1. Zero Trust が未設定なら有効にする（チーム名とプランの選択。**ユーザータスク**）。
 2. dev-mcp の `cf_access_create_app` で、`staging.example.com`・ステージング Worker の `workers.dev`・Preview URLs を保護する Access アプリケーションを作る。本番の `{project}` は Preview URLs だけを保護する。既存のものは `cf_access_list_apps` / `cf_access_update_app` で確認・更新する。
-3. エージェント用の Service Token は作成済みで、環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入っている。新しく作らず、`cf_access_list_service_tokens` で `client_id` が `$CF_ACCESS_CLIENT_ID` と一致するトークンを探して使う（値はチャット・コード・ログに出さない）。
-4. ステージングのポリシーに、開発者のメールアドレスの Allow と、上のエージェント用 Service Token の Service Auth を追加する（`cf_access_update_app`、ポリシーの確認は `cf_access_list_policies`）。期限が近づいたら `cf_access_refresh_service_token` / `cf_access_rotate_service_token` で更新する。
-5. Stripe の Webhook など外部から呼ばれるパス（`staging.example.com/api/webhooks/*`）に、Bypass ポリシーの Access アプリケーションを `cf_access_create_app` で作る。
-6. 確認：ヘッダーなしの `curl -I https://staging.example.com` がログイン画面にリダイレクトされ、Service Token のヘッダーを付けると 200 が返る。
+3. エージェント用の Service Token `agents_token` はアカウントに登録済みで、Client ID / Client Secret は環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入っている。新しく作らず、`cf_access_list_service_tokens` で `agents_token`（`client_id` が `$CF_ACCESS_CLIENT_ID` と一致するもの）の ID を確認する（値はチャット・コード・ログに出さない）。
+4. ステージングの Access アプリケーションに次のポリシーを付ける（`cf_access_create_app` / `cf_access_update_app`、確認は `cf_access_list_policies`）。
+
+| ポリシー名 | アクション | セレクター |
+|---|---|---|
+| developer | Allow | メール：`tsukasa240129@gmail.com` |
+| エージェント・自動テスト | Service Auth | Service Token：`agents_token` |
+
+   `agents_token` の期限が近づいたら `cf_access_refresh_service_token` で延長する（`cf_access_rotate_service_token` は値が変わるので、使った場合はユーザーに環境変数の更新を依頼する）。
+5. Stripe などの Webhook を受けるパスがある場合だけ、そのパス（`staging.example.com/api/webhooks/*` など）を対象にした別の Access アプリケーションを `cf_access_create_app` で作り、ポリシー「webhook bypass」（アクション：Bypass、セレクター：Everyone）を付ける。Bypass したパスは Webhook の署名検証で守る。
+6. 確認：ヘッダーなしの `curl -I https://staging.example.com` がログイン画面にリダイレクトされ、`agents_token` のヘッダーを付けると 200 が返る。Webhook のパスはヘッダーなしでも Access に止められない（アプリ側の署名検証で 400 などになる）。
 
 ```bash
 curl -I https://staging.example.com \
