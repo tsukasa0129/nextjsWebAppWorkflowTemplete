@@ -154,13 +154,15 @@ https://tsk-cc.com/
 #### プレビュー URL のアクセス管理（Cloudflare Access）
 - プレビュー用の URL（`staging.domain.com`、ステージング Worker の `workers.dev`、Workers の Preview URLs）は、すべて Cloudflare Access で保護し、一般に公開しない。本番の `app.domain.com` は保護しない。
 - 保護はステージング Worker に付ける（dev-mcp の `cf_access_create_app` / `cf_access_update_app` で、Preview と Production の両方を対象にする）。Worker に付けると、Custom Domain・`workers.dev`・Preview URLs がまとめて保護され、ドメインを追加しても保護が外れない。本番 Worker は Preview URLs だけを保護する。
-- ポリシーは次の 2 つを持たせる。
-  | ポリシー | Action | 対象 |
+- ステージングの Access アプリケーションには、次のポリシーを付ける。
+
+  | ポリシー名 | アクション | セレクター |
   |---|---|---|
-  | 開発者 | Allow | ユーザーのメールアドレス（ワンタイム PIN などでログイン） |
-  | エージェント・自動テスト | Service Auth | エージェント用 Service Token（環境変数 `CF_ACCESS_CLIENT_ID` の Client ID のもの） |
-- 外部サービスから呼ばれるパス（Stripe の Webhook `/api/webhooks/*` など）は、Access の対象から外す（パスを指定した別の Access アプリケーションに Bypass ポリシーを付ける）。外したパスは、署名の検証で守る。
-- エージェント用の Service Token は作成済みで、環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入っている。プロジェクトごとに新しく作らず、これを使う。リクエストに `CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダーを付ける。チャットやコードに値を書かない。
+  | developer | Allow | メール：`tsukasa240129@gmail.com` |
+  | エージェント・自動テスト | Service Auth | Service Token：`agents_token`（アカウントに登録済み） |
+
+- Stripe などの Webhook を受けるパス（`staging.domain.com/api/webhooks/*` など）がある場合は、そのパスだけを対象にした別の Access アプリケーションを作り、ポリシー「webhook bypass」（アクション：Bypass、セレクター：Everyone）で通す。Bypass したパスは、Webhook の署名検証で必ず守る。Webhook がないアプリでは作らない。
+- `agents_token` は Cloudflare アカウントに登録済みで、その Client ID / Client Secret は環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入っている。プロジェクトごとに新しい Service Token を作らず、これを使う。リクエストに `CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダーを付ける。チャットやコードに値を書かない。
 - Service Token には有効期限がある。期限が近づいたら `cf_access_refresh_service_token` で延長する（作り直すと値が変わるので、その場合はユーザーに環境変数の更新を依頼する）。
 - アプリ側でも、`Cf-Access-Jwt-Assertion` ヘッダーの JWT を検証するとより安全になる（ステージングだけで有効にする）。
 
