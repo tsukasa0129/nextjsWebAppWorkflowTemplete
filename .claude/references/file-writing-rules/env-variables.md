@@ -19,7 +19,7 @@
 
 - 開発時の公開は `.env.local`、開発時の秘密キーは`sbxコマンド`で注入、本番用の全キーが載ったファイルは`.env.example`（Cloudflare Workers に設定する前提で書く。公開してよい値は `wrangler.jsonc` の `vars`、秘密値は dev-mcp の `cf_worker_put_secret` で本番・ステージングの Worker それぞれに登録する）
 - D1・R2・メール送信（`send_email`）・LLM（Workers AI の `ai`）はバインディングで使うため API キーは不要。環境変数表とは別に「バインディング一覧」（バインディング名・種類・本番/ステージングのリソース名）を載せる
-- プレビュー URL の Cloudflare Access を通るための `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` は、エージェント・テスト用の秘密値として載せる（アプリには設定しない）
+- プレビュー URL の Cloudflare Access を通るための `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` は、エージェントの実行環境の環境変数に設定済み。エージェント・テスト用の秘密値として載せる（取得元は「エージェント環境に設定済み」とし、アプリには設定しない）
 - メールの受信先 `customer.support.all@gmail.com` は Email Routing の設定値として記載する（アプリの環境変数には入れない）
 - クライアント公開変数は `NEXT_PUBLIC_` プレフィックスを必ず付け、シークレットには絶対に付けない
 - シークレット系の変数は「**サーバーサイドのみ**」と明記する
