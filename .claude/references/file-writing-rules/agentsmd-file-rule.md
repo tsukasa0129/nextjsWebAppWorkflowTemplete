@@ -97,7 +97,7 @@ https://tsk-cc.com/
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
 - ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）。Cloudflare アカウントは Workers Paid プラン（月 $5〜）に加入済み
 - Cloudflare・GA4・GTM の操作は MCP サーバー dev-mcp（`mcp__dev-mcp__cf_*` / `mcp__dev-mcp__ga4_*` / `mcp__dev-mcp__gtm_*`）から行う。ダッシュボードでの手作業や `curl` は使わず、dev-mcp にない操作だけ `wrangler` を使う。ドメインの購入（`cf_domain_register`）は価格をユーザーに見せて承認を得てから実行する
-- ホストするときは、アプリ専用のドメインを取得し（Cloudflare Registrar を基本とする）、Cloudflare を権威 DNS にして Workers の Custom Domains で紐付ける。アプリの本番は `app.` のサブドメイン（`app.domain.com`）でホストし、apex と `www` は LP 用に空けておく。`workers.dev` のまま公開しない（手順は `.claude/references/cli-setup.md` の「ドメインの取得と紐付け」）
+- ホストするときは、アプリ専用のドメインを取得し（Cloudflare Registrar を基本とする）、Cloudflare を権威 DNS にして Workers の Custom Domains で紐付ける。アプリの本番は `app.` のサブドメイン（`app.domain.com`）でホストする。トップドメイン（apex の `domain.com` と `www.domain.com`）は SEO 用のサイトで使うため、アプリの作業では触らない（Worker の割り当て・リダイレクト・A / AAAA / CNAME レコードの追加や変更をしない）。メール用の MX・TXT（SPF・DKIM・DMARC）レコードの追加だけは行ってよい。`workers.dev` のまま公開しない（手順は `.claude/references/cli-setup.md` の「ドメインの取得と紐付け」）
 - デプロイは Cloudflare 側の GitHub 連携（Workers Builds）で行う。リポジトリの接続・トリガーの設定は Cloudflare の Builds API（dev-mcp の `cf_builds_*`）で行い、ダッシュボードから手で接続しない。`main` への push で本番、`staging` への push でステージングにデプロイされる。本番へ手動で `deploy` コマンドを実行しない（手順は `.claude/references/cli-setup.md`）
 - D1 の変更（スキーマ・初期データ・データ修正）はすべて `migrations/` の SQL ファイルにして Git に push し、Workers Builds で適用する（`staging` → ステージング、`main` → 本番）。Cloudflare の管理画面から D1 を直接いじらず、本番・ステージングに手で `--remote` 適用もしない。dev-mcp の `cf_d1_query` や `wrangler d1 execute` は `SELECT` での調査だけに使う。適用済みの SQL は書き換えず、新しい SQL を追加して直す（手順は `.claude/references/cli-setup.md`）
 - D1 には RLS がないため、ユーザー所有テーブルへのアクセスは必ずサーバー側のデータアクセス層を通し、`user_id` で絞り込む。クライアントから DB に直接触らせない

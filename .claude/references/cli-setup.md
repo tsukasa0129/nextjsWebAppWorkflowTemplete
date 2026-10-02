@@ -200,7 +200,7 @@ git commit -m "Initial project scaffold"
 |---|---|---|
 | `app.{app-name}.com` | `{project}` | アプリの本番 |
 | `staging.{app-name}.com` | `{project}-staging` | ステージング（Cloudflare Access で保護） |
-| `{app-name}.com`・`www.{app-name}.com` | アプリの Worker には割り当てない | LP・紹介サイト用に空けておく。LP がない間は Redirect Rules で `app.{app-name}.com` に 302 で転送する |
+| `{app-name}.com`・`www.{app-name}.com` | **触らない** | SEO 用のサイトで使う。アプリの Worker を割り当てず、リダイレクトも設定しない |
 
 ```jsonc
 {
@@ -218,6 +218,7 @@ git commit -m "Initial project scaffold"
 
 - Custom Domain を割り当てると、DNS レコードと証明書は Cloudflare が自動で作る。同じホスト名の既存レコードがあると失敗するので、先に確認する。
 - `workers_dev: false` にして、公開 URL をドメインに一本化する。Workers Builds の非本番ブランチのビルドで Preview URLs を使う場合は、`"preview_urls": true` も書く（Preview URLs は Cloudflare Access で保護する）。
+- トップドメイン（apex の `{app-name}.com` と `www.{app-name}.com`）は SEO 用のサイトで使うため、アプリの作業では触らない（Worker の割り当て・リダイレクト・A / AAAA / CNAME レコードの追加や変更をしない）。メール用の MX・TXT（SPF・DKIM・DMARC）レコードの追加だけは行ってよい。
 - メールの送信・受信は apex（`noreply@{app-name}.com`・`support@{app-name}.com`）のまま使う。アプリのホストを `app.` にしても変えない。
 - `NEXT_PUBLIC_APP_URL`・Stripe の Webhook・認証のコールバック URL・メール内のリンクは、本番は `app.{app-name}.com`、ステージングは `staging.{app-name}.com` に揃える。
 - 取得したドメインは `docs/env-variables/env-variables.md` と AGENTS.md に記録する。自動更新を有効にし、期限切れで止まらないようにする。
