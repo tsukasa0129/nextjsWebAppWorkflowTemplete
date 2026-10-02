@@ -158,10 +158,10 @@ https://tsk-cc.com/
   | ポリシー | Action | 対象 |
   |---|---|---|
   | 開発者 | Allow | ユーザーのメールアドレス（ワンタイム PIN などでログイン） |
-  | エージェント・自動テスト | Service Auth | Service Token `{project}-agent` |
+  | エージェント・自動テスト | Service Auth | エージェント用 Service Token（環境変数 `CF_ACCESS_CLIENT_ID` の Client ID のもの） |
 - 外部サービスから呼ばれるパス（Stripe の Webhook `/api/webhooks/*` など）は、Access の対象から外す（パスを指定した別の Access アプリケーションに Bypass ポリシーを付ける）。外したパスは、署名の検証で守る。
-- エージェントは Service Token で通る。トークンは環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` で渡し、リクエストに `CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダーを付ける。チャットやコードに値を書かない。
-- Service Token には有効期限がある。期限の前に作り直し、環境変数を入れ替える。
+- エージェント用の Service Token は作成済みで、環境変数 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` に入っている。プロジェクトごとに新しく作らず、これを使う。リクエストに `CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダーを付ける。チャットやコードに値を書かない。
+- Service Token には有効期限がある。期限が近づいたら `cf_access_refresh_service_token` で延長する（作り直すと値が変わるので、その場合はユーザーに環境変数の更新を依頼する）。
 - アプリ側でも、`Cf-Access-Jwt-Assertion` ヘッダーの JWT を検証するとより安全になる（ステージングだけで有効にする）。
 
 
