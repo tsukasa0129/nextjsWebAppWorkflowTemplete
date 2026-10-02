@@ -8,6 +8,9 @@
 Cloudflare・GA4・GTM の操作は、MCP サーバー **dev-mcp** からエージェントが直接行う。ダッシュボードでの手作業や `curl` は使わない（dev-mcp にないものだけ `wrangler` CLI を使う）。
 
 #### Cloudflare（`mcp__dev-mcp__cf_*`）
+
+Cloudflare アカウントは Workers Paid プラン（月 $5〜）に加入済み。プランの加入はユーザータスクにしない。
+
 - ドメイン：検索・見積もり・取得（`cf_domain_search` → `cf_domain_quote` → `cf_domain_register`）・設定（`cf_domain_*`）
 - ゾーン・DNS：`cf_list_zones` / `cf_get_zone` / `cf_*_dns_record` / `cf_zone_settings`
 - D1：作成・一覧（`cf_d1_create_database` / `cf_d1_list_databases`）、調査のための読み取り（`cf_d1_query` は `SELECT` のみ）、マイグレーションの状態確認（`cf_d1_migrations_list`）。スキーマ・データの変更は migration SQL を Git push して Workers Builds で適用する（`cf_d1_query` や管理画面から直接変更しない）

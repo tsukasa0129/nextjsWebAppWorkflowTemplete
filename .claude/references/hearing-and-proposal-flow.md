@@ -51,7 +51,7 @@ Step 1 で得たプロジェクト概要をもとに、エージェントが以�
 - LLM（組み込む場合のみ）: Cloudflare Workers AI（`ai` バインディング）。外部の LLM API は使わない
 - 決済: Stripe。ただし決済機能が不要なサービスでは「なし」とする
 
-メール・ホスティング・DB は Cloudflare に統一する。Vercel・Supabase・Resend などは、ユーザーが明示した場合を除き提案しない。
+メール・ホスティング・DB は Cloudflare に統一する。Cloudflare アカウントは Workers Paid プラン（月 $5〜）に加入済みなので、Paid プランの上限で提案する。Vercel・Supabase・Resend などは、ユーザーが明示した場合を除き提案しない。
 
 
 

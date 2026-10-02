@@ -63,6 +63,8 @@ npm install {提案で選定したライブラリ}
 
 ## Cloudflare リソースのセットアップ
 
+Cloudflare アカウントは **Workers Paid プラン（月 $5〜）に加入済み**。Free プランの上限（Workers の CPU 時間・リクエスト数、D1 の容量など）を前提にした回避策は取らず、Paid プランの上限で設計する。プランの加入・変更をユーザータスクにしない。
+
 Cloudflare の操作は MCP サーバー **dev-mcp**（`mcp__dev-mcp__cf_*`）からエージェントが直接行う。ダッシュボードでの手作業や `curl` は使わない。dev-mcp にない操作（R2 の作成、ビルド、ローカル開発）だけ `wrangler` CLI を使う。
 
 | 作るもの | dev-mcp のツール |
@@ -112,7 +114,7 @@ npx wrangler d1 migrations apply {project}-db --local   # ローカルで確認
 - 適用済みの SQL ファイルは書き換えない・消さない。直したいときは新しい SQL を追加する。
 - 本番の D1 を直接書き換える必要が出たとき（障害対応など）も、まず SQL ファイルにして PR を通す。
 - 調査のための読み取り（`SELECT`）は、dev-mcp の `cf_d1_query` で行ってよい。適用済みのマイグレーションは `cf_d1_migrations_list` で確認する。`INSERT`・`UPDATE`・`DELETE`・`CREATE`・`ALTER`・`DROP` はこれらで実行しない。
-- 大きな変更の前は `npx wrangler d1 export {project}-db --remote --output backup.sql` でバックアップを取る（D1 の Time Travel でも保持期間内（Free は 7 日、Paid は 30 日）なら戻せる）。
+- 大きな変更の前は `npx wrangler d1 export {project}-db --remote --output backup.sql` でバックアップを取る（Workers Paid プランなので、D1 の Time Travel でも 30 日以内なら戻せる）。
 
 メールの送信・受信の設定は `.claude/references/mail.md` に従う。
 
