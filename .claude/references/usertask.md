@@ -20,7 +20,7 @@ Cloudflare アカウントは Workers Paid プラン（月 $5〜）に加入済�
 - Access：プレビュー URL の保護と Service Token（`cf_access_*`）
 - Turnstile：ウィジェットの作成（`cf_turnstile_*`）
 - 上にない API は `cf_request` / `cf_get` で呼ぶ（Email Routing のルール作成など）
-- Workers AI のバインディング設定とモデルの選定
+- Workers AI のバインディング設定（モデルは基本的に DeepSeek V4 Flash / V4 Pro）
 
 #### GA4（`mcp__dev-mcp__ga4_*`）・GTM（`mcp__dev-mcp__gtm_*`）
 - GA4 のプロパティ・データストリーム・カスタムディメンション・キーイベントの作成、レポートの取得（作成先は必ず GA4 の Tsk アカウント・GTM の TSK アカウント）

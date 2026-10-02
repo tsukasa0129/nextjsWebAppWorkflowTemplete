@@ -48,7 +48,7 @@ Step 1 で得たプロジェクト概要をもとに、エージェントが以�
 - DB: Cloudflare D1（ORM は Drizzle）。ファイル保存が必要なら Cloudflare R2
 - 認証: Better Auth（D1 に保存）
 - メール: 送信は Cloudflare Email Service、受信は Cloudflare Email Routing で `customer.support.all@gmail.com` に転送（詳細は `.claude/references/mail.md`）
-- LLM（組み込む場合のみ）: Cloudflare Workers AI（`ai` バインディング）。外部の LLM API は使わない
+- LLM（組み込む場合のみ）: Cloudflare Workers AI（`ai` バインディング）の DeepSeek（標準は V4 Flash、高い精度が必要な処理は V4 Pro）。外部の LLM API は使わない
 - 決済: Stripe。ただし決済機能が不要なサービスでは「なし」とする
 
 メール・ホスティング・DB は Cloudflare に統一する。Cloudflare アカウントは Workers Paid プラン（月 $5〜）に加入済みなので、Paid プランの上限で提案する。Vercel・Supabase・Resend などは、ユーザーが明示した場合を除き提案しない。

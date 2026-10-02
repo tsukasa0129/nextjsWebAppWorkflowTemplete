@@ -102,7 +102,7 @@ https://tsk-cc.com/
 - D1 の変更（スキーマ・初期データ・データ修正）はすべて `migrations/` の SQL ファイルにして Git に push し、Workers Builds で適用する（`staging` → ステージング、`main` → 本番）。Cloudflare の管理画面から D1 を直接いじらず、本番・ステージングに手で `--remote` 適用もしない。dev-mcp の `cf_d1_query` や `wrangler d1 execute` は `SELECT` での調査だけに使う。適用済みの SQL は書き換えず、新しい SQL を追加して直す（手順は `.claude/references/cli-setup.md`）
 - D1 には RLS がないため、ユーザー所有テーブルへのアクセスは必ずサーバー側のデータアクセス層を通し、`user_id` で絞り込む。クライアントから DB に直接触らせない
 - Cloudflare のリソース（D1・R2・メール）はバインディング経由で使い、`getCloudflareContext()` で取得する
-- アプリに LLM を組み込むときは、Web アプリなら Cloudflare Workers AI のモデルを使う（`wrangler.jsonc` の `ai` バインディング → `env.AI.run()`、または AI SDK + `workers-ai-provider`）。OpenAI などの外部 API キーは、ユーザーが明示した場合を除き使わない（詳細は `.claude/references/cli-setup.md`）
+- アプリに LLM を組み込むときは、Web アプリなら Cloudflare Workers AI のモデルを使う。モデルは基本的に DeepSeek（標準は `@cf/deepseek-ai/deepseek-v4-flash-0731`、高い精度が必要な処理だけ `@cf/deepseek-ai/deepseek-v4-pro-0813`）にする（`wrangler.jsonc` の `ai` バインディング → `env.AI.run()`、または AI SDK + `workers-ai-provider`）。OpenAI などの外部 API キーは、ユーザーが明示した場合を除き使わない（詳細は `.claude/references/cli-setup.md`）
 - メールの送信・受信は `.claude/references/mail.md` の手順に従う。お問い合わせの受信先は `customer.support.all@gmail.com`（Email Routing で転送）
 - 計算エンジンはクライアントサイドで実行（`'use client'` コンポーネント内で呼び出し）
 - エラーハンドリング: try-catch + ユーザーフレンドリーなエラーメッセージ

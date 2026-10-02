@@ -122,6 +122,18 @@ npx wrangler d1 migrations apply {project}-db --local   # ローカルで確認
 
 アプリに LLM を組み込むときは、Web アプリなら Cloudflare Workers AI のモデルを使う。`ai` バインディングで呼ぶので API キーは不要。OpenAI などの外部 API は、ユーザーが明示した場合を除き使わない。
 
+モデルは基本的に **DeepSeek** を使う（Workers AI 上のモデルなので DeepSeek の API キーは不要。Workers Paid プランで利用できる）。
+
+| 用途 | モデル ID | 料金（100 万トークンあたり） |
+|---|---|---|
+| 標準（ほとんどの処理） | `@cf/deepseek-ai/deepseek-v4-flash-0731` | 入力 $0.44 / 出力 $1.32 |
+| 高い精度が必要な処理（複雑な推論・複数ステップの処理） | `@cf/deepseek-ai/deepseek-v4-pro-0813` | 入力 $1.32 / 出力 $3.96 |
+
+- どちらもコンテキストは約 100 万トークンで、関数呼び出しと推論（`reasoning`）に対応している。
+- まず V4 Flash で作り、精度が足りない処理だけ V4 Pro に切り替える。
+- 画像の入力など DeepSeek でできない処理だけ、他の Workers AI のモデルを使う（理由を設計書に残す）。
+- モデルの新しい版が出ていないか、実装時に Workers AI のモデル一覧で確認する。
+
 `ai` バインディングは `env` に引き継がれないため、`env.staging` にも書く（上の `wrangler.jsonc` の例を参照）。1 つの Worker に 1 つだけ定義できる。
 
 ```bash
@@ -134,8 +146,9 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { generateText } from "ai";
 import { createWorkersAI } from "workers-ai-provider";
 
-// モデル ID はこの 1 か所で管理する（Workers AI のモデル一覧から、用途・日本語対応・料金で選ぶ）
-export const LLM_MODEL = "@cf/<provider>/<model>";
+// モデル ID はこの 1 か所で管理する（基本は DeepSeek）
+export const LLM_MODEL = "@cf/deepseek-ai/deepseek-v4-flash-0731";     // 標準
+export const LLM_MODEL_PRO = "@cf/deepseek-ai/deepseek-v4-pro-0813";   // 高い精度が必要な処理
 
 export async function generate(prompt: string) {
   const { env } = getCloudflareContext();
