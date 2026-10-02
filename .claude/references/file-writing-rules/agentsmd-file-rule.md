@@ -95,7 +95,7 @@ https://tsk-cc.com/
 - アプリ内でLLM組み込む時はwebアプリならcloud worker AIの中のモデル利用するようする。ネイティブアプリの場合は端末内のローカルLLMが使えるかも要相談しながら進める。
 - `'use client'` は必要最小限のコンポーネントのみに付与
 - API Route はすべてサーバーサイド（`'use server'` 不要、Route Handler）
-- ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）
+- ホスティング・DB・メールは Cloudflare に統一する（Workers + D1 + Email Service / Email Routing）。Cloudflare アカウントは Workers Paid プラン（月 $5〜）に加入済み
 - Cloudflare・GA4・GTM の操作は MCP サーバー dev-mcp（`mcp__dev-mcp__cf_*` / `mcp__dev-mcp__ga4_*` / `mcp__dev-mcp__gtm_*`）から行う。ダッシュボードでの手作業や `curl` は使わず、dev-mcp にない操作だけ `wrangler` を使う。ドメインの購入（`cf_domain_register`）は価格をユーザーに見せて承認を得てから実行する
 - ホストするときは、アプリ専用のドメインを取得し（Cloudflare Registrar を基本とする）、Cloudflare を権威 DNS にして Workers の Custom Domains で紐付ける。アプリの本番は `app.` のサブドメイン（`app.domain.com`）でホストし、apex と `www` は LP 用に空けておく。`workers.dev` のまま公開しない（手順は `.claude/references/cli-setup.md` の「ドメインの取得と紐付け」）
 - デプロイは Cloudflare 側の GitHub 連携（Workers Builds）で行う。リポジトリの接続・トリガーの設定は Cloudflare の Builds API（dev-mcp の `cf_builds_*`）で行い、ダッシュボードから手で接続しない。`main` への push で本番、`staging` への push でステージングにデプロイされる。本番へ手動で `deploy` コマンドを実行しない（手順は `.claude/references/cli-setup.md`）
